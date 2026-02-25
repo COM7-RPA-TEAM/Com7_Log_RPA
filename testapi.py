@@ -5,7 +5,7 @@ import requests
 API_URL = "https://com7rpalog-436289358307.asia-southeast3.run.app/api/v1/bot-log"
 
 payload = {
-    "bot_name": "Test_Bot_01",
+    "bot_name": "Test_Bot_02",
     "status": "Running",
     "stage": "1 - Open Browser",
     "error_message": ""

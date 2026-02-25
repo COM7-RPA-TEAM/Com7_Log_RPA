@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPA Real-time Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    body {
+      background-color: #f4f6f9;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .card-bot {
+      transition: transform 0.2s;
+      border-radius: 12px;
+      border: none;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-bot:hover {
+      transform: translateY(-5px);
+    }
+
+    .status-Running {
+      background-color: #0dcaf0;
+      color: white;
+    }
+
+    .status-Success {
+      background-color: #198754;
+      color: white;
+    }
+
+    .status-Failed {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    .status-badge {
+      font-size: 0.9em;
+      padding: 6px 12px;
+      border-radius: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container mt-5">
+    <h2 class="mb-4 text-center fw-bold text-primary">
+      <i class="fa-solid fa-robot"></i> RPA Bot Live Dashboard
+    </h2>
+    <p class="text-center text-muted mb-5">ข้อมูลอัปเดตอัตโนมัติแบบ Real-time (ไม่ต้องกด Refresh)</p>
+
+    <div class="row" id="bot-container">
+      <div class="col-12 text-center">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">กำลังเชื่อมต่อ Firebase...</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+  <script>
+    // 1. ตั้งค่าเชื่อมต่อ Firebase (ใส่ URL Database ของคุณ)
+    const firebaseConfig = {
+      databaseURL: "https://com7-rpa-log-default-rtdb.asia-southeast1.firebasedatabase.app/"
+    };
+
+    // 2. เริ่มต้นระบบ Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // 3. ฟังก์ชันดึงข้อมูลแบบ Real-time
+    const botContainer = document.getElementById('bot-container');
+
+    // คำสั่ง .on('value') คือเวทมนตร์ของ Firebase ที่จะทำงานอัตโนมัติทุกครั้งที่ข้อมูลเปลี่ยน
+    db.ref('rpa_live_status').on('value', (snapshot) => {
+      const data = snapshot.val();
+      botContainer.innerHTML = ''; // ล้างหน้าจอของเก่าออก
+
+      if (!data) {
+        botContainer.innerHTML = '<div class="col-12 text-center"><p>ยังไม่มีข้อมูล Bot ในระบบ</p></div>';
+        return;
+      }
+
+      // วนลูปดึงข้อมูลบอทแต่ละตัวมาวาดเป็นการ์ด
+      Object.keys(data).forEach(botName => {
+        const botInfo = data[botName];
+
+        // กำหนดไอคอนและสีตามสถานะ
+        let statusClass = "bg-secondary";
+        let icon = "fa-circle-question";
+
+        if (botInfo.status === "Running") { statusClass = "status-Running"; icon = "fa-spinner fa-spin"; }
+        else if (botInfo.status === "Success") { statusClass = "status-Success"; icon = "fa-check-circle"; }
+        else if (botInfo.status === "Failed") { statusClass = "status-Failed"; icon = "fa-times-circle"; }
+
+        // เช็คว่ามี Error ไหม
+        let errorHtml = botInfo.error_message
+          ? `<div class="alert alert-danger mt-3 p-2 text-sm" style="font-size:0.85rem;"><i class="fa-solid fa-triangle-exclamation"></i> Error: ${botInfo.error_message}</div>`
+          : '';
+
+        // สร้าง HTML ของการ์ด
+        const cardHtml = `
+                <div class="col-md-4 mb-4">
+                    <div class="card card-bot h-100">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center pt-3 pb-2 border-0">
+                            <h5 class="card-title fw-bold m-0"><i class="fa-solid fa-desktop text-secondary"></i> ${botName}</h5>
+                        </div>
+                        <div class="card-body pt-1">
+                            <span class="badge ${statusClass} status-badge mb-3">
+                                <i class="fa-solid ${icon}"></i> ${botInfo.status}
+                            </span>
+                            <p class="card-text m-0 text-muted"><small><b>Stage ปัจจุบัน:</b></small></p>
+                            <p class="card-text fw-semibold text-primary">${botInfo.stage}</p>
+                            ${errorHtml}
+                        </div>
+                        <div class="card-footer bg-light text-muted text-end border-0" style="font-size: 0.8rem;">
+                            อัปเดตล่าสุด: ${botInfo.last_update}
+                        </div>
+                    </div>
+                </div>
+            `;
+        botContainer.innerHTML += cardHtml;
+      });
+    });
+  </script>
+
+</body>
+
+</html>
