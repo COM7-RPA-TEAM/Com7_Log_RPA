@@ -6,7 +6,7 @@ import datetime
 API_URL = "https://com7rpalog-436289358307.asia-southeast3.run.app/api/v1/bot-log"
 
 payload = {
-    "bot_name": "Test_Bot_06",
+    "bot_name": "Test_Bot_07",
     "stage": "1 - Attach Invoice",
     "status": "Running",
     "status_datetime": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
