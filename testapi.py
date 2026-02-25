@@ -1,14 +1,16 @@
 import requests
+import datetime
 
 # 🚨 เปลี่ยน URL ด้านล่างนี้ให้เป็น URL จาก Google Cloud Run ของคุณ
 # สำคัญ: ต้องมี /api/v1/bot-log ต่อท้ายด้วยนะครับ
 API_URL = "https://com7rpalog-436289358307.asia-southeast3.run.app/api/v1/bot-log"
 
 payload = {
-    "bot_name": "Test_Bot_03",
-    "status": "Failed",
-    "stage": "1 - Open Browser",
-    "error_message": ""
+    "bot_name": "Test_Bot_06",
+    "stage": "1 - Attach Invoice",
+    "status": "Running",
+    "status_datetime": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    "error_message": "xxx"
 }
 
 print(f"กำลังส่งข้อมูลไปที่: {API_URL}")

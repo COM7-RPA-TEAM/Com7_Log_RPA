@@ -14,19 +14,18 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
-    /* สไตล์สำหรับ Card View */
     .card-bot {
       transition: transform 0.2s;
       border-radius: 12px;
       border: none;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      position: relative;
     }
 
     .card-bot:hover {
       transform: translateY(-5px);
     }
 
-    /* สไตล์สำหรับ Status */
     .status-Running {
       background-color: #0dcaf0;
       color: white;
@@ -53,6 +52,16 @@
       padding: 5px 10px;
       border-radius: 12px;
     }
+
+    /* ปุ่ม Action (Edit/Delete) */
+    .action-btns {
+      opacity: 0.7;
+      transition: 0.3s;
+    }
+
+    .action-btns:hover {
+      opacity: 1;
+    }
   </style>
 </head>
 
@@ -64,7 +73,7 @@
         <i class="fa-solid fa-robot"></i> RPA Live Dashboard
       </h2>
 
-      <div class="btn-group" role="group" aria-label="View Toggle">
+      <div class="btn-group" role="group">
         <input type="radio" class="btn-check view-selector" name="viewType" id="view-card" value="card"
           autocomplete="off" checked>
         <label class="btn btn-outline-primary" for="view-card"><i class="fa-solid fa-border-all"></i> Card</label>
@@ -87,11 +96,52 @@
     </div>
   </div>
 
+  <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square text-primary"></i> แก้ไขข้อมูล Bot</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editForm">
+            <div class="mb-3">
+              <label class="form-label fw-bold">Bot Name (ไม่สามารถแก้ชื่อได้)</label>
+              <input type="text" class="form-control" id="editBotName" readonly>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Status</label>
+              <select class="form-select" id="editStatus">
+                <option value="Running">Running</option>
+                <option value="Success">Success</option>
+                <option value="Failed">Failed</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Stage</label>
+              <input type="text" class="form-control" id="editStage">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-bold">Error Message (ถ้ามี)</label>
+              <textarea class="form-control" id="editError" rows="2"></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+          <button type="button" class="btn btn-primary" onclick="saveBotEdit()"><i class="fa-solid fa-save"></i>
+            บันทึกข้อมูล</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    // 🚨 อย่าลืมเช็ค URL Firebase ของคุณให้ตรงนะครับ
+    // 🚨 ใส่ URL Firebase ของคุณ
     const firebaseConfig = {
       databaseURL: "https://com7-rpa-log-default-rtdb.asia-southeast1.firebasedatabase.app/"
     };
@@ -99,20 +149,75 @@
     const db = firebase.database();
 
     const botContainer = document.getElementById('bot-container');
-
-    // ตัวแปรเก็บข้อมูลล่าสุด และ View ปัจจุบัน
     let latestData = null;
     let currentView = 'card';
+    let editModalInstance = null; // เก็บตัวแปร Modal
 
-    // ฟังก์ชันดึงไอคอนและสีตามสถานะ (ใช้ซ้ำได้ทุก View)
+    // รอให้หน้าเว็บโหลดเสร็จก่อนค่อยผูก Modal
+    document.addEventListener("DOMContentLoaded", function () {
+      editModalInstance = new bootstrap.Modal(document.getElementById('editModal'));
+    });
+
     function getStatusStyle(status) {
-      if (status === "Running") return { class: "status-Running", icon: "fa-spinner fa-spin", textClass: "text-info" };
-      if (status === "Success") return { class: "status-Success", icon: "fa-check-circle", textClass: "text-success" };
-      if (status === "Failed") return { class: "status-Failed", icon: "fa-times-circle", textClass: "text-danger" };
-      return { class: "bg-secondary", icon: "fa-circle-question", textClass: "text-secondary" };
+      if (status === "Running") return { class: "status-Running", icon: "fa-spinner fa-spin" };
+      if (status === "Success") return { class: "status-Success", icon: "fa-check-circle" };
+      if (status === "Failed") return { class: "status-Failed", icon: "fa-times-circle" };
+      return { class: "bg-secondary", icon: "fa-circle-question" };
     }
 
-    // ฟังก์ชันหลักสำหรับวาดหน้าจอ (Render)
+    // ==========================================
+    // ฟังก์ชันเปิดหน้าต่าง Edit
+    // ==========================================
+    window.openEditModal = function (botName) {
+      const info = latestData[botName];
+      document.getElementById('editBotName').value = botName;
+      document.getElementById('editStatus').value = info.status;
+      document.getElementById('editStage').value = info.stage;
+      document.getElementById('editError').value = info.error_message || '';
+      editModalInstance.show();
+    };
+
+    // ==========================================
+    // ฟังก์ชันบันทึกข้อมูลจากการ Edit ลง Firebase
+    // ==========================================
+    window.saveBotEdit = function () {
+      const botName = document.getElementById('editBotName').value;
+      const newStatus = document.getElementById('editStatus').value;
+      const newStage = document.getElementById('editStage').value;
+      const newError = document.getElementById('editError').value;
+
+      // สร้างเวลาปัจจุบันให้ตรงฟอร์แมต
+      const now = new Date();
+      const formattedTime = now.getFullYear() + '-' +
+        String(now.getMonth() + 1).padStart(2, '0') + '-' +
+        String(now.getDate()).padStart(2, '0') + ' ' +
+        String(now.getHours()).padStart(2, '0') + ':' +
+        String(now.getMinutes()).padStart(2, '0') + ':' +
+        String(now.getSeconds()).padStart(2, '0');
+
+      db.ref('rpa_live_status/' + botName).update({
+        status: newStatus,
+        stage: newStage,
+        error_message: newError,
+        status_datetime: formattedTime
+      }).then(() => {
+        editModalInstance.hide();
+      }).catch(err => alert("เกิดข้อผิดพลาดในการบันทึก: " + err));
+    };
+
+    // ==========================================
+    // ฟังก์ชันลบข้อมูล Bot
+    // ==========================================
+    window.deleteBot = function (botName) {
+      if (confirm(`⚠️ คุณแน่ใจหรือไม่ว่าต้องการลบประวัติการรันของ "${botName}" ?\n\n(หากบอทตัวนี้รันใหม่ ข้อมูลก็จะกลับมาอีกครั้ง)`)) {
+        db.ref('rpa_live_status/' + botName).remove()
+          .catch(err => alert("ลบไม่สำเร็จ: " + err));
+      }
+    };
+
+    // ==========================================
+    // ฟังก์ชันวาดหน้าจอ
+    // ==========================================
     function renderDashboard() {
       if (!latestData) {
         botContainer.innerHTML = '<div class="text-center mt-5"><p class="text-muted">ยังไม่มีข้อมูล Bot ในระบบ</p></div>';
@@ -122,38 +227,38 @@
       let html = '';
       const botNames = Object.keys(latestData);
 
-      // ==========================================
-      // 1. วาดแบบ CARD VIEW (ดูง่าย สบายตา)
-      // ==========================================
       if (currentView === 'card') {
         html += '<div class="row">';
         botNames.forEach(botName => {
           const info = latestData[botName];
           const st = getStatusStyle(info.status);
+          // ดึง status_datetime ตาม payload ใหม่ (เผื่อของเก่าเป็น last_update เลยใส่ || ไว้กันเหนียว)
+          const timeDisplay = info.status_datetime || info.last_update || '-';
           const errorHtml = info.error_message ? `<div class="alert alert-danger mt-3 p-2 text-sm" style="font-size:0.8rem;"><i class="fa-solid fa-triangle-exclamation"></i> ${info.error_message}</div>` : '';
 
           html += `
                     <div class="col-md-4 col-sm-6 mb-4">
                         <div class="card card-bot h-100">
-                            <div class="card-body">
+                            <div class="position-absolute top-0 end-0 p-2 action-btns">
+                                <button class="btn btn-sm btn-light text-primary border shadow-sm" onclick="openEditModal('${botName}')" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
+                                <button class="btn btn-sm btn-light text-danger border shadow-sm" onclick="deleteBot('${botName}')" title="ลบ"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+
+                            <div class="card-body pt-4">
                                 <h5 class="fw-bold mb-3"><i class="fa-solid fa-desktop text-secondary"></i> ${botName}</h5>
                                 <span class="badge ${st.class} status-badge mb-3"><i class="fa-solid ${st.icon}"></i> ${info.status}</span>
                                 <p class="card-text m-0 text-muted" style="font-size:0.85rem;">Stage ปัจจุบัน:</p>
                                 <p class="card-text fw-semibold text-primary">${info.stage}</p>
                                 ${errorHtml}
                             </div>
-                            <div class="card-footer bg-white text-muted text-end border-0" style="font-size: 0.75rem;">
-                                <i class="fa-regular fa-clock"></i> ${info.last_update}
+                            <div class="card-footer bg-white text-muted border-0" style="font-size: 0.75rem;">
+                                <i class="fa-regular fa-clock"></i> ${timeDisplay}
                             </div>
                         </div>
                     </div>`;
         });
         html += '</div>';
       }
-
-      // ==========================================
-      // 2. วาดแบบ LIST VIEW (ตารางสรุป เน้นประหยัดพื้นที่)
-      // ==========================================
       else if (currentView === 'list') {
         html += `
             <div class="table-responsive bg-white rounded shadow-sm">
@@ -163,14 +268,15 @@
                             <th>Bot Name</th>
                             <th>Status</th>
                             <th>Current Stage</th>
-                            <th>Last Update</th>
+                            <th>Date / Time</th>
+                            <th class="text-center">Action</th>
                         </tr>
                     </thead>
                     <tbody>`;
         botNames.forEach(botName => {
           const info = latestData[botName];
           const st = getStatusStyle(info.status);
-          // ถ้า Failed ให้แสดง Error ต่อท้าย Stage เลย
+          const timeDisplay = info.status_datetime || info.last_update || '-';
           const stageDisplay = info.status === "Failed" && info.error_message
             ? `<span>${info.stage}</span> <br><small class="text-danger"><i class="fa-solid fa-triangle-exclamation"></i> ${info.error_message}</small>`
             : info.stage;
@@ -180,20 +286,21 @@
                         <td class="fw-bold"><i class="fa-solid fa-desktop text-secondary me-2"></i>${botName}</td>
                         <td><span class="badge ${st.class} table-status-badge"><i class="fa-solid ${st.icon}"></i> ${info.status}</span></td>
                         <td>${stageDisplay}</td>
-                        <td class="text-muted" style="font-size:0.85rem;">${info.last_update}</td>
+                        <td class="text-muted" style="font-size:0.85rem;">${timeDisplay}</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-primary" onclick="openEditModal('${botName}')"><i class="fa-solid fa-pen"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteBot('${botName}')"><i class="fa-solid fa-trash"></i></button>
+                        </td>
                     </tr>`;
         });
         html += `</tbody></table></div>`;
       }
-
-      // ==========================================
-      // 3. วาดแบบ DETAIL VIEW (แสดงเต็มจอ เหมาะกับสาย Debug)
-      // ==========================================
       else if (currentView === 'detail') {
         html += '<div class="row">';
         botNames.forEach(botName => {
           const info = latestData[botName];
           const st = getStatusStyle(info.status);
+          const timeDisplay = info.status_datetime || info.last_update || '-';
           const errorHtml = info.error_message
             ? `<tr><th class="text-danger">Error Msg:</th><td><code class="text-danger">${info.error_message}</code></td></tr>`
             : '';
@@ -201,15 +308,21 @@
           html += `
                     <div class="col-12 mb-3">
                         <div class="card border-start border-4 ${info.status === 'Failed' ? 'border-danger' : info.status === 'Success' ? 'border-success' : 'border-info'} shadow-sm">
-                            <div class="card-body row align-items-center">
+                            <div class="card-body row align-items-center position-relative">
+                                
+                                <div class="position-absolute top-0 end-0 p-2 text-end" style="width: auto;">
+                                    <button class="btn btn-sm text-primary" onclick="openEditModal('${botName}')"><i class="fa-solid fa-pen"></i></button>
+                                    <button class="btn btn-sm text-danger" onclick="deleteBot('${botName}')"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+
                                 <div class="col-md-3">
                                     <h5 class="fw-bold m-0">${botName}</h5>
-                                    <small class="text-muted">${info.last_update}</small>
+                                    <small class="text-muted">${timeDisplay}</small>
                                 </div>
                                 <div class="col-md-2 text-md-center mt-2 mt-md-0">
                                     <span class="badge ${st.class} status-badge"><i class="fa-solid ${st.icon}"></i> ${info.status}</span>
                                 </div>
-                                <div class="col-md-7 mt-3 mt-md-0">
+                                <div class="col-md-6 mt-3 mt-md-0">
                                     <table class="table table-sm table-borderless m-0" style="font-size: 0.9rem;">
                                         <tr><th width="20%">Stage:</th><td class="fw-semibold text-primary">${info.stage}</td></tr>
                                         ${errorHtml}
@@ -221,22 +334,21 @@
         });
         html += '</div>';
       }
-
       botContainer.innerHTML = html;
     }
 
-    // ติดตามการเปลี่ยนแปลงข้อมูลจาก Firebase (ทำงานอัตโนมัติ)
+    // ดึงข้อมูล Real-time
     db.ref('rpa_live_status').on('value', (snapshot) => {
       latestData = snapshot.val();
-      renderDashboard(); // โหลดเสร็จสั่งวาดหน้าจอ
+      renderDashboard();
     });
 
-    // ดักจับการกดปุ่มเปลี่ยน View
+    // เปลี่ยน View
     const radios = document.querySelectorAll('.view-selector');
     radios.forEach(radio => {
       radio.addEventListener('change', (e) => {
         currentView = e.target.value;
-        renderDashboard(); // เปลี่ยน View ปุ๊บ สั่งวาดหน้าจอใหม่ทันที (ไม่ต้องโหลดข้อมูลใหม่)
+        renderDashboard();
       });
     });
 
