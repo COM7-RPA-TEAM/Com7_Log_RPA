@@ -4,26 +4,108 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RPA Real-time Dashboard</title>
+  <title>RPA Enterprise Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
   <style>
     body {
-      background-color: #f4f6f9;
+      background-color: #f4f7f6;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow-x: hidden;
     }
 
+    /* ==========================================
+           🎨 SVG Animations & Graphics
+           ========================================== */
+    .hero-section {
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      color: white;
+      position: relative;
+      padding: 3rem 0 5rem 0;
+      overflow: hidden;
+    }
+
+    .wave-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      overflow: hidden;
+      line-height: 0;
+    }
+
+    .wave-svg {
+      position: relative;
+      display: block;
+      width: calc(100% + 1.3px);
+      height: 60px;
+    }
+
+    .wave-path {
+      fill: #f4f7f6;
+      animation: waveAnim 10s linear infinite;
+    }
+
+    @keyframes waveAnim {
+      0% {
+        transform: translateX(0);
+      }
+
+      50% {
+        transform: translateX(-2%);
+      }
+
+      100% {
+        transform: translateX(0);
+      }
+    }
+
+    .floating-robot {
+      animation: float 3s ease-in-out infinite;
+      filter: drop-shadow(0px 10px 10px rgba(0, 0, 0, 0.2));
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(0px);
+      }
+
+      50% {
+        transform: translateY(-15px);
+      }
+
+      100% {
+        transform: translateY(0px);
+      }
+    }
+
+    .spinning-gear {
+      animation: spin 8s linear infinite;
+      transform-origin: center;
+      opacity: 0.2;
+    }
+
+    @keyframes spin {
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ==========================================
+           UI Components Styles
+           ========================================== */
     .card-bot {
-      transition: transform 0.2s;
+      transition: transform 0.2s, box-shadow 0.2s;
       border-radius: 12px;
       border: none;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
       position: relative;
     }
 
     .card-bot:hover {
       transform: translateY(-5px);
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
     }
 
     .status-Running {
@@ -42,72 +124,195 @@
     }
 
     .status-badge {
-      font-size: 0.9em;
+      font-size: 0.85em;
       padding: 6px 12px;
       border-radius: 20px;
+      font-weight: 600;
     }
 
     .table-status-badge {
-      font-size: 0.85em;
-      padding: 5px 10px;
+      font-size: 0.8em;
+      padding: 4px 8px;
       border-radius: 12px;
     }
 
-    /* ปุ่ม Action (Edit/Delete) */
     .action-btns {
-      opacity: 0.7;
+      opacity: 0.3;
       transition: 0.3s;
     }
 
-    .action-btns:hover {
+    .card-bot:hover .action-btns,
+    tr:hover .action-btns {
       opacity: 1;
+    }
+
+    /* สไตล์สำหรับตาราง History แบบ Compact (บรรทัดเตี้ย) */
+    .table-compact td,
+    .table-compact th {
+      padding: 0.4rem 0.5rem;
+      font-size: 0.85rem;
+      vertical-align: middle;
+    }
+
+    .table-compact tbody tr:hover {
+      background-color: #f1f4f8;
+    }
+
+    /* Custom Tabs */
+    .nav-pills .nav-link {
+      color: #2a5298;
+      font-weight: 600;
+      border-radius: 30px;
+      padding: 8px 20px;
+      margin-right: 10px;
+      transition: 0.3s;
+    }
+
+    .nav-pills .nav-link.active {
+      background-color: #2a5298;
+      color: white;
+      box-shadow: 0 4px 8px rgba(42, 82, 152, 0.3);
     }
   </style>
 </head>
 
 <body>
 
-  <div class="container mt-4 mb-5">
-    <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
-      <h2 class="fw-bold text-primary m-0">
-        <i class="fa-solid fa-robot"></i> RPA Live Dashboard
-      </h2>
+  <div class="hero-section shadow-sm">
+    <svg class="spinning-gear position-absolute" style="top: -20px; right: 10%; width: 150px; height: 150px;"
+      viewBox="0 0 100 100" fill="white">
+      <path
+        d="M50,20 c-16.5,0-30,13.5-30,30 c0,16.5,13.5,30,30,30 c16.5,0,30-13.5,30-30 C80,33.5,66.5,20,50,20 z M50,70 c-11,0-20-9-20-20 c0-11,9-20,20-20 c11,0,20,9,20,20 C70,61,61,70,50,70 z" />
+      <path
+        d="M50,5 a5,5 0 0,0 -5,5 v5 a5,5 0 0,0 10,0 v-5 a5,5 0 0,0 -5,-5 zM50,85 a5,5 0 0,0 -5,5 v5 a5,5 0 0,0 10,0 v-5 a5,5 0 0,0 -5,-5 zM95,45 h-5 a5,5 0 0,0 0,10 h5 a5,5 0 0,0 0,-10 zM15,45 h-5 a5,5 0 0,0 0,10 h5 a5,5 0 0,0 0,-10 z" />
+    </svg>
 
-      <div class="btn-group" role="group">
-        <input type="radio" class="btn-check view-selector" name="viewType" id="view-card" value="card"
-          autocomplete="off" checked>
-        <label class="btn btn-outline-primary" for="view-card"><i class="fa-solid fa-border-all"></i> Card</label>
-
-        <input type="radio" class="btn-check view-selector" name="viewType" id="view-list" value="list"
-          autocomplete="off">
-        <label class="btn btn-outline-primary" for="view-list"><i class="fa-solid fa-list"></i> List</label>
-
-        <input type="radio" class="btn-check view-selector" name="viewType" id="view-detail" value="detail"
-          autocomplete="off">
-        <label class="btn btn-outline-primary" for="view-detail"><i class="fa-solid fa-list-check"></i> Detail</label>
+    <div class="container position-relative z-1 d-flex align-items-center justify-content-center text-center">
+      <svg class="floating-robot me-3" width="70" height="70" viewBox="0 0 24 24" fill="none"
+        xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C10.8954 2 10 2.89543 10 4V4.5H14V4C14 2.89543 13.1046 2 12 2Z" fill="#0dcaf0" />
+        <rect x="4" y="8" width="16" height="12" rx="3" fill="white" />
+        <circle cx="8" cy="13" r="2" fill="#2a5298" />
+        <circle cx="16" cy="13" r="2" fill="#2a5298" />
+        <path d="M9 17H15" stroke="#2a5298" stroke-width="1.5" stroke-linecap="round" />
+        <rect x="2" y="10" width="2" height="6" rx="1" fill="#0dcaf0" />
+        <rect x="20" y="10" width="2" height="6" rx="1" fill="#0dcaf0" />
+      </svg>
+      <div>
+        <h1 class="fw-bold m-0" style="letter-spacing: 1px;">RPA Control Center</h1>
+        <p class="m-0 opacity-75">Live Monitoring & Historical Logs</p>
       </div>
     </div>
 
-    <div id="bot-container">
-      <div class="text-center mt-5">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2 text-muted">กำลังเชื่อมต่อ Firebase...</p>
+    <div class="wave-container">
+      <svg class="wave-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+        <path class="wave-path"
+          d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z"
+          opacity=".25"></path>
+        <path class="wave-path"
+          d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-23.81V0Z"
+          opacity=".5"></path>
+        <path class="wave-path"
+          d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z">
+        </path>
+      </svg>
+    </div>
+  </div>
+
+  <div class="container mt-4 mb-5">
+
+    <ul class="nav nav-pills mb-4 justify-content-center" id="dashboardTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="live-tab" data-bs-toggle="pill" data-bs-target="#live-view" type="button"
+          role="tab"><i class="fa-solid fa-satellite-dish me-2"></i>Live Dashboard</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="history-tab" data-bs-toggle="pill" data-bs-target="#history-view" type="button"
+          role="tab"><i class="fa-solid fa-clock-rotate-left me-2"></i>History Logs</button>
+      </li>
+    </ul>
+
+    <div class="tab-content" id="dashboardTabsContent">
+
+      <div class="tab-pane fade show active" id="live-view" role="tabpanel">
+
+        <div class="row align-items-center mb-4 bg-white p-3 rounded shadow-sm mx-0">
+          <div class="col-md-6 mb-3 mb-md-0">
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0"><i
+                  class="fa-solid fa-magnifying-glass text-muted"></i></span>
+              <input type="text" id="searchInput" class="form-control border-start-0"
+                placeholder="ค้นหาชื่อ Bot (Search Bot Name)...">
+            </div>
+          </div>
+          <div class="col-md-6 text-md-end">
+            <div class="btn-group" role="group">
+              <input type="radio" class="btn-check view-selector" name="viewType" id="view-card" value="card"
+                autocomplete="off" checked>
+              <label class="btn btn-outline-secondary btn-sm" for="view-card"><i class="fa-solid fa-border-all"></i>
+                Card</label>
+
+              <input type="radio" class="btn-check view-selector" name="viewType" id="view-list" value="list"
+                autocomplete="off">
+              <label class="btn btn-outline-secondary btn-sm" for="view-list"><i class="fa-solid fa-list"></i>
+                List</label>
+            </div>
+          </div>
+        </div>
+
+        <div id="bot-container">
+          <div class="text-center mt-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">กำลังดึงข้อมูล Live...</p>
+          </div>
+        </div>
       </div>
+
+      <div class="tab-pane fade" id="history-view" role="tabpanel">
+        <div class="bg-white rounded shadow-sm p-3">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold m-0 text-primary"><i class="fa-solid fa-database me-2"></i>ประวัติการรันล่าสุด (Latest
+              500 records)</h5>
+            <span class="badge bg-light text-dark border">อัปเดตแบบ Real-time</span>
+          </div>
+
+          <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+            <table class="table table-hover table-compact table-bordered mb-0">
+              <thead class="table-dark" style="position: sticky; top: 0; z-index: 1;">
+                <tr>
+                  <th width="18%">Date / Time</th>
+                  <th width="20%">Bot Name</th>
+                  <th width="12%">Status</th>
+                  <th width="25%">Stage</th>
+                  <th width="25%">Error Message</th>
+                </tr>
+              </thead>
+              <tbody id="history-container">
+                <tr>
+                  <td colspan="5" class="text-center py-4 text-muted"><i
+                      class="fa-solid fa-spinner fa-spin me-2"></i>กำลังโหลดประวัติ...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
   <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header bg-light">
-          <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square text-primary"></i> แก้ไขข้อมูล Bot</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square"></i> แก้ไขข้อมูล Live Status</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="editForm">
             <div class="mb-3">
-              <label class="form-label fw-bold">Bot Name (ไม่สามารถแก้ชื่อได้)</label>
-              <input type="text" class="form-control" id="editBotName" readonly>
+              <label class="form-label fw-bold">Bot Name</label>
+              <input type="text" class="form-control bg-light" id="editBotName" readonly>
             </div>
             <div class="mb-3">
               <label class="form-label fw-bold">Status</label>
@@ -122,15 +327,15 @@
               <input type="text" class="form-control" id="editStage">
             </div>
             <div class="mb-3">
-              <label class="form-label fw-bold">Error Message (ถ้ามี)</label>
+              <label class="form-label fw-bold">Error Message</label>
               <textarea class="form-control" id="editError" rows="2"></textarea>
             </div>
           </form>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer bg-light">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-          <button type="button" class="btn btn-primary" onclick="saveBotEdit()"><i class="fa-solid fa-save"></i>
-            บันทึกข้อมูล</button>
+          <button type="button" class="btn btn-primary px-4" onclick="saveBotEdit()"><i
+              class="fa-solid fa-save me-1"></i> บันทึก</button>
         </div>
       </div>
     </div>
@@ -141,117 +346,76 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    // 🚨 ใส่ URL Firebase ของคุณ
+    // 🚨 ใส่ URL Firebase ของคุณให้ถูกต้อง
     const firebaseConfig = {
       databaseURL: "https://com7-rpa-log-default-rtdb.asia-southeast1.firebasedatabase.app/"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // ตัวแปร Global
     const botContainer = document.getElementById('bot-container');
-    let latestData = null;
-    let currentView = 'card';
-    let editModalInstance = null; // เก็บตัวแปร Modal
+    const historyContainer = document.getElementById('history-container');
+    const searchInput = document.getElementById('searchInput');
+    let latestLiveData = null;
+    let historyData = [];
+    let currentLiveView = 'card';
+    let searchQuery = '';
+    let editModalInstance = null;
 
-    // รอให้หน้าเว็บโหลดเสร็จก่อนค่อยผูก Modal
     document.addEventListener("DOMContentLoaded", function () {
       editModalInstance = new bootstrap.Modal(document.getElementById('editModal'));
     });
 
+    // Utility: ดึงสี/ไอคอน
     function getStatusStyle(status) {
-      if (status === "Running") return { class: "status-Running", icon: "fa-spinner fa-spin" };
-      if (status === "Success") return { class: "status-Success", icon: "fa-check-circle" };
-      if (status === "Failed") return { class: "status-Failed", icon: "fa-times-circle" };
-      return { class: "bg-secondary", icon: "fa-circle-question" };
+      if (status === "Running") return { class: "status-Running", icon: "fa-spinner fa-spin", textClass: "text-info" };
+      if (status === "Success") return { class: "status-Success", icon: "fa-check-circle", textClass: "text-success" };
+      if (status === "Failed") return { class: "status-Failed", icon: "fa-times-circle", textClass: "text-danger" };
+      return { class: "bg-secondary", icon: "fa-circle-question", textClass: "text-secondary" };
     }
 
     // ==========================================
-    // ฟังก์ชันเปิดหน้าต่าง Edit
+    // 1. ระบบ Live Dashboard (ดึงข้อมูล + วาดหน้าจอ + ค้นหา)
     // ==========================================
-    window.openEditModal = function (botName) {
-      const info = latestData[botName];
-      document.getElementById('editBotName').value = botName;
-      document.getElementById('editStatus').value = info.status;
-      document.getElementById('editStage').value = info.stage;
-      document.getElementById('editError').value = info.error_message || '';
-      editModalInstance.show();
-    };
-
-    // ==========================================
-    // ฟังก์ชันบันทึกข้อมูลจากการ Edit ลง Firebase
-    // ==========================================
-    window.saveBotEdit = function () {
-      const botName = document.getElementById('editBotName').value;
-      const newStatus = document.getElementById('editStatus').value;
-      const newStage = document.getElementById('editStage').value;
-      const newError = document.getElementById('editError').value;
-
-      // สร้างเวลาปัจจุบันให้ตรงฟอร์แมต
-      const now = new Date();
-      const formattedTime = now.getFullYear() + '-' +
-        String(now.getMonth() + 1).padStart(2, '0') + '-' +
-        String(now.getDate()).padStart(2, '0') + ' ' +
-        String(now.getHours()).padStart(2, '0') + ':' +
-        String(now.getMinutes()).padStart(2, '0') + ':' +
-        String(now.getSeconds()).padStart(2, '0');
-
-      db.ref('rpa_live_status/' + botName).update({
-        status: newStatus,
-        stage: newStage,
-        error_message: newError,
-        status_datetime: formattedTime
-      }).then(() => {
-        editModalInstance.hide();
-      }).catch(err => alert("เกิดข้อผิดพลาดในการบันทึก: " + err));
-    };
-
-    // ==========================================
-    // ฟังก์ชันลบข้อมูล Bot
-    // ==========================================
-    window.deleteBot = function (botName) {
-      if (confirm(`⚠️ คุณแน่ใจหรือไม่ว่าต้องการลบประวัติการรันของ "${botName}" ?\n\n(หากบอทตัวนี้รันใหม่ ข้อมูลก็จะกลับมาอีกครั้ง)`)) {
-        db.ref('rpa_live_status/' + botName).remove()
-          .catch(err => alert("ลบไม่สำเร็จ: " + err));
-      }
-    };
-
-    // ==========================================
-    // ฟังก์ชันวาดหน้าจอ
-    // ==========================================
-    function renderDashboard() {
-      if (!latestData) {
+    function renderLiveDashboard() {
+      if (!latestLiveData) {
         botContainer.innerHTML = '<div class="text-center mt-5"><p class="text-muted">ยังไม่มีข้อมูล Bot ในระบบ</p></div>';
         return;
       }
 
       let html = '';
-      const botNames = Object.keys(latestData);
+      // กรองชื่อบอทตามช่อง Search
+      const botNames = Object.keys(latestLiveData).filter(name => name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      if (currentView === 'card') {
+      if (botNames.length === 0) {
+        botContainer.innerHTML = '<div class="text-center mt-5"><i class="fa-solid fa-magnifying-glass text-muted fs-1 mb-3"></i><p class="text-muted">ไม่พบชื่อ Bot ที่ค้นหา</p></div>';
+        return;
+      }
+
+      if (currentLiveView === 'card') {
         html += '<div class="row">';
         botNames.forEach(botName => {
-          const info = latestData[botName];
+          const info = latestLiveData[botName];
           const st = getStatusStyle(info.status);
-          // ดึง status_datetime ตาม payload ใหม่ (เผื่อของเก่าเป็น last_update เลยใส่ || ไว้กันเหนียว)
           const timeDisplay = info.status_datetime || info.last_update || '-';
-          const errorHtml = info.error_message ? `<div class="alert alert-danger mt-3 p-2 text-sm" style="font-size:0.8rem;"><i class="fa-solid fa-triangle-exclamation"></i> ${info.error_message}</div>` : '';
+          const errorHtml = info.error_message ? `<div class="alert alert-danger mt-3 p-1 px-2 text-sm" style="font-size:0.75rem;"><i class="fa-solid fa-triangle-exclamation"></i> ${info.error_message}</div>` : '';
 
           html += `
-                    <div class="col-md-4 col-sm-6 mb-4">
+                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
                         <div class="card card-bot h-100">
-                            <div class="position-absolute top-0 end-0 p-2 action-btns">
-                                <button class="btn btn-sm btn-light text-primary border shadow-sm" onclick="openEditModal('${botName}')" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
-                                <button class="btn btn-sm btn-light text-danger border shadow-sm" onclick="deleteBot('${botName}')" title="ลบ"><i class="fa-solid fa-trash"></i></button>
+                            <div class="position-absolute top-0 end-0 p-2 action-btns z-1">
+                                <button class="btn btn-sm btn-light text-primary border shadow-sm py-0 px-2" onclick="openEditModal('${botName}')" title="แก้ไข"><i class="fa-solid fa-pen" style="font-size:0.8rem;"></i></button>
+                                <button class="btn btn-sm btn-light text-danger border shadow-sm py-0 px-2 ms-1" onclick="deleteBot('${botName}')" title="ลบ"><i class="fa-solid fa-trash" style="font-size:0.8rem;"></i></button>
                             </div>
-
-                            <div class="card-body pt-4">
-                                <h5 class="fw-bold mb-3"><i class="fa-solid fa-desktop text-secondary"></i> ${botName}</h5>
+                            <div class="card-body pt-4 pb-2">
+                                <h6 class="fw-bold mb-3 text-truncate" title="${botName}"><i class="fa-solid fa-robot text-secondary me-1"></i> ${botName}</h6>
                                 <span class="badge ${st.class} status-badge mb-3"><i class="fa-solid ${st.icon}"></i> ${info.status}</span>
-                                <p class="card-text m-0 text-muted" style="font-size:0.85rem;">Stage ปัจจุบัน:</p>
-                                <p class="card-text fw-semibold text-primary">${info.stage}</p>
+                                <p class="card-text m-0 text-muted" style="font-size:0.75rem;">Stage:</p>
+                                <p class="card-text fw-semibold text-primary" style="font-size:0.9rem;">${info.stage}</p>
                                 ${errorHtml}
                             </div>
-                            <div class="card-footer bg-white text-muted border-0" style="font-size: 0.75rem;">
+                            <div class="card-footer bg-transparent text-muted border-0 pt-0" style="font-size: 0.7rem;">
                                 <i class="fa-regular fa-clock"></i> ${timeDisplay}
                             </div>
                         </div>
@@ -259,10 +423,10 @@
         });
         html += '</div>';
       }
-      else if (currentView === 'list') {
+      else if (currentLiveView === 'list') {
         html += `
             <div class="table-responsive bg-white rounded shadow-sm">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table table-hover align-middle mb-0 text-sm" style="font-size: 0.9rem;">
                     <thead class="table-light">
                         <tr>
                             <th>Bot Name</th>
@@ -274,7 +438,7 @@
                     </thead>
                     <tbody>`;
         botNames.forEach(botName => {
-          const info = latestData[botName];
+          const info = latestLiveData[botName];
           const st = getStatusStyle(info.status);
           const timeDisplay = info.status_datetime || info.last_update || '-';
           const stageDisplay = info.status === "Failed" && info.error_message
@@ -283,74 +447,125 @@
 
           html += `
                     <tr>
-                        <td class="fw-bold"><i class="fa-solid fa-desktop text-secondary me-2"></i>${botName}</td>
+                        <td class="fw-bold"><i class="fa-solid fa-robot text-secondary me-2"></i>${botName}</td>
                         <td><span class="badge ${st.class} table-status-badge"><i class="fa-solid ${st.icon}"></i> ${info.status}</span></td>
                         <td>${stageDisplay}</td>
                         <td class="text-muted" style="font-size:0.85rem;">${timeDisplay}</td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-outline-primary" onclick="openEditModal('${botName}')"><i class="fa-solid fa-pen"></i></button>
-                            <button class="btn btn-sm btn-outline-danger" onclick="deleteBot('${botName}')"><i class="fa-solid fa-trash"></i></button>
+                        <td class="text-center action-btns">
+                            <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="openEditModal('${botName}')"><i class="fa-solid fa-pen" style="font-size:0.7rem;"></i></button>
+                            <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteBot('${botName}')"><i class="fa-solid fa-trash" style="font-size:0.7rem;"></i></button>
                         </td>
                     </tr>`;
         });
         html += `</tbody></table></div>`;
       }
-      else if (currentView === 'detail') {
-        html += '<div class="row">';
-        botNames.forEach(botName => {
-          const info = latestData[botName];
-          const st = getStatusStyle(info.status);
-          const timeDisplay = info.status_datetime || info.last_update || '-';
-          const errorHtml = info.error_message
-            ? `<tr><th class="text-danger">Error Msg:</th><td><code class="text-danger">${info.error_message}</code></td></tr>`
-            : '';
-
-          html += `
-                    <div class="col-12 mb-3">
-                        <div class="card border-start border-4 ${info.status === 'Failed' ? 'border-danger' : info.status === 'Success' ? 'border-success' : 'border-info'} shadow-sm">
-                            <div class="card-body row align-items-center position-relative">
-                                
-                                <div class="position-absolute top-0 end-0 p-2 text-end" style="width: auto;">
-                                    <button class="btn btn-sm text-primary" onclick="openEditModal('${botName}')"><i class="fa-solid fa-pen"></i></button>
-                                    <button class="btn btn-sm text-danger" onclick="deleteBot('${botName}')"><i class="fa-solid fa-trash"></i></button>
-                                </div>
-
-                                <div class="col-md-3">
-                                    <h5 class="fw-bold m-0">${botName}</h5>
-                                    <small class="text-muted">${timeDisplay}</small>
-                                </div>
-                                <div class="col-md-2 text-md-center mt-2 mt-md-0">
-                                    <span class="badge ${st.class} status-badge"><i class="fa-solid ${st.icon}"></i> ${info.status}</span>
-                                </div>
-                                <div class="col-md-6 mt-3 mt-md-0">
-                                    <table class="table table-sm table-borderless m-0" style="font-size: 0.9rem;">
-                                        <tr><th width="20%">Stage:</th><td class="fw-semibold text-primary">${info.stage}</td></tr>
-                                        ${errorHtml}
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>`;
-        });
-        html += '</div>';
-      }
       botContainer.innerHTML = html;
     }
 
-    // ดึงข้อมูล Real-time
+    // ดึง Live Data
     db.ref('rpa_live_status').on('value', (snapshot) => {
-      latestData = snapshot.val();
-      renderDashboard();
+      latestLiveData = snapshot.val();
+      renderLiveDashboard();
     });
 
-    // เปลี่ยน View
-    const radios = document.querySelectorAll('.view-selector');
-    radios.forEach(radio => {
+    // จับ Event การ Search
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      renderLiveDashboard();
+    });
+
+    // เปลี่ยน View (Card / List)
+    document.querySelectorAll('.view-selector').forEach(radio => {
       radio.addEventListener('change', (e) => {
-        currentView = e.target.value;
-        renderDashboard();
+        currentLiveView = e.target.value;
+        renderLiveDashboard();
       });
     });
+
+    // ==========================================
+    // 2. ระบบ History Logs (โหลด 500 รายการล่าสุด)
+    // ==========================================
+    function renderHistoryLogs() {
+      if (historyData.length === 0) {
+        historyContainer.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">ยังไม่มีประวัติการรัน</td></tr>';
+        return;
+      }
+
+      let html = '';
+      historyData.forEach(log => {
+        const st = getStatusStyle(log.status);
+        const errorText = log.error_message ? `<span class="text-danger"><i class="fa-solid fa-triangle-exclamation"></i> ${log.error_message}</span>` : `<span class="text-success">-</span>`;
+
+        html += `
+                <tr>
+                    <td class="text-muted">${log.status_datetime || '-'}</td>
+                    <td class="fw-bold text-dark"><i class="fa-solid fa-robot text-secondary me-1" style="font-size:0.7rem;"></i> ${log.bot_name}</td>
+                    <td><span class="${st.textClass} fw-bold" style="font-size:0.8rem;"><i class="fa-solid ${st.icon}"></i> ${log.status}</span></td>
+                    <td class="text-primary">${log.stage}</td>
+                    <td style="font-size:0.8rem;">${errorText}</td>
+                </tr>
+            `;
+      });
+      historyContainer.innerHTML = html;
+    }
+
+    // ดึง History Data (จำกัด 500 รายการ ป้องกันเว็บค้าง)
+    db.ref('rpa_history_logs').orderByChild('status_datetime').limitToLast(500).on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        // แปลง Object เป็น Array แล้วสลับให้รายการใหม่สุดอยู่ด้านบน
+        historyData = Object.values(data).sort((a, b) => {
+          const timeA = a.status_datetime || "";
+          const timeB = b.status_datetime || "";
+          return timeB.localeCompare(timeA);
+        });
+        renderHistoryLogs();
+      }
+    });
+
+    // ==========================================
+    // 3. ฟังก์ชัน Edit / Delete (อัปเดตเฉพาะ Live Status)
+    // ==========================================
+    window.openEditModal = function (botName) {
+      const info = latestLiveData[botName];
+      document.getElementById('editBotName').value = botName;
+      document.getElementById('editStatus').value = info.status;
+      document.getElementById('editStage').value = info.stage;
+      document.getElementById('editError').value = info.error_message || '';
+      editModalInstance.show();
+    };
+
+    window.saveBotEdit = function () {
+      const botName = document.getElementById('editBotName').value;
+
+      // สร้างเวลาปัจจุบันเพื่ออัปเดตลง Log
+      const now = new Date();
+      const formattedTime = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+
+      const updateData = {
+        status: document.getElementById('editStatus').value,
+        stage: document.getElementById('editStage').value,
+        error_message: document.getElementById('editError').value,
+        status_datetime: formattedTime
+      };
+
+      // 1. อัปเดต Live
+      db.ref('rpa_live_status/' + botName).update(updateData)
+        .then(() => {
+          editModalInstance.hide();
+          // 2. เด้งไปบันทึกเป็นประวัติการแก้ไขใน History ด้วย (Optional แต่แนะนำ)
+          updateData.bot_name = botName + " (Manual Edit)";
+          db.ref('rpa_history_logs').push(updateData);
+        })
+        .catch(err => alert("เกิดข้อผิดพลาด: " + err));
+    };
+
+    window.deleteBot = function (botName) {
+      if (confirm(`⚠️ ต้องการลบสถานะของ "${botName}" ออกจากหน้า Live Dashboard ใช่หรือไม่?\n(ข้อมูลใน History จะยังคงอยู่)`)) {
+        db.ref('rpa_live_status/' + botName).remove()
+          .catch(err => alert("ลบไม่สำเร็จ: " + err));
+      }
+    };
 
   </script>
 </body>
