@@ -24,27 +24,41 @@ if not firebase_admin._apps:
         })
         print("✅ เชื่อมต่อ Firebase สำเร็จ (ด้วย Default IAM)")
 
-# 1. ปรับปรุงรูปแบบข้อมูลให้ตรงกับ Payload ใหม่
 class BotLog(BaseModel):
     bot_name: str
     stage: str
     status: str
-    status_datetime: str  # <--- เพิ่มตัวแปรนี้เข้ามารับเวลาจาก Bot
+    status_datetime: str  
     error_message: str = ""
 
 @app.post("/api/v1/bot-log")
 async def receive_bot_log(log: BotLog):
-    # 2. ไม่ต้องใช้ datetime ของฝั่ง API แล้ว ใช้ log.status_datetime ที่รับมาได้เลย
-    ref = db.reference(f'rpa_live_status/{log.bot_name}')
-    
-    ref.update({
+    # ==========================================
+    # งานที่ 1: อัปเดตสถานะล่าสุด (สำหรับแสดงบนหน้า Live Dashboard)
+    # (ใช้ชื่อบอทเป็น Key -> ข้อมูลเก่าจะถูกเขียนทับเสมอ)
+    # ==========================================
+    live_ref = db.reference(f'rpa_live_status/{log.bot_name}')
+    live_ref.update({
         'status': log.status,
         'stage': log.stage,
         'error_message': log.error_message,
-        'status_datetime': log.status_datetime  # <--- บันทึกลง Firebase ด้วย Key ใหม่
+        'status_datetime': log.status_datetime
+    })
+
+    # ==========================================
+    # งานที่ 2: บันทึกประวัติการรันทั้งหมด (Historical Log สำหรับนำไปวิเคราะห์)
+    # (ใช้ .push() -> สร้าง Record ใหม่ทุกครั้งที่ยิงเข้ามา ไม่มีการเขียนทับ)
+    # ==========================================
+    history_ref = db.reference('rpa_history_logs')
+    history_ref.push({
+        'bot_name': log.bot_name,
+        'status': log.status,
+        'stage': log.stage,
+        'error_message': log.error_message,
+        'status_datetime': log.status_datetime
     })
     
-    return {"message": "Success", "bot": log.bot_name, "time": log.status_datetime}
+    return {"message": "Success - Logged to both Live and History", "bot": log.bot_name, "time": log.status_datetime}
 
 @app.get("/")
 def read_root():
