@@ -15,9 +15,7 @@
       overflow-x: hidden;
     }
 
-    /* ==========================================
-           🎨 SVG Animations & Graphics
-           ========================================== */
+    /* Graphics & Animations */
     .hero-section {
       background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
       color: white;
@@ -92,9 +90,7 @@
       }
     }
 
-    /* ==========================================
-           UI Components Styles
-           ========================================== */
+    /* UI Styles */
     .card-bot {
       transition: transform 0.2s, box-shadow 0.2s;
       border-radius: 12px;
@@ -146,10 +142,9 @@
       opacity: 1;
     }
 
-    /* สไตล์สำหรับตาราง History แบบ Compact (บรรทัดเตี้ย) */
     .table-compact td,
     .table-compact th {
-      padding: 0.4rem 0.5rem;
+      padding: 0.5rem 0.6rem;
       font-size: 0.85rem;
       vertical-align: middle;
     }
@@ -158,7 +153,6 @@
       background-color: #f1f4f8;
     }
 
-    /* Custom Tabs */
     .nav-pills .nav-link {
       color: #2a5298;
       font-weight: 600;
@@ -173,6 +167,16 @@
       color: white;
       box-shadow: 0 4px 8px rgba(42, 82, 152, 0.3);
     }
+
+    .pagination {
+      cursor: pointer;
+      margin-bottom: 0;
+    }
+
+    .page-item.active .page-link {
+      background-color: #2a5298;
+      border-color: #2a5298;
+    }
   </style>
 </head>
 
@@ -186,7 +190,6 @@
       <path
         d="M50,5 a5,5 0 0,0 -5,5 v5 a5,5 0 0,0 10,0 v-5 a5,5 0 0,0 -5,-5 zM50,85 a5,5 0 0,0 -5,5 v5 a5,5 0 0,0 10,0 v-5 a5,5 0 0,0 -5,-5 zM95,45 h-5 a5,5 0 0,0 0,10 h5 a5,5 0 0,0 0,-10 zM15,45 h-5 a5,5 0 0,0 0,10 h5 a5,5 0 0,0 0,-10 z" />
     </svg>
-
     <div class="container position-relative z-1 d-flex align-items-center justify-content-center text-center">
       <svg class="floating-robot me-3" width="70" height="70" viewBox="0 0 24 24" fill="none"
         xmlns="http://www.w3.org/2000/svg">
@@ -203,7 +206,6 @@
         <p class="m-0 opacity-75">Live Monitoring & Historical Logs</p>
       </div>
     </div>
-
     <div class="wave-container">
       <svg class="wave-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
         <path class="wave-path"
@@ -220,22 +222,18 @@
   </div>
 
   <div class="container mt-4 mb-5">
-
     <ul class="nav nav-pills mb-4 justify-content-center" id="dashboardTabs" role="tablist">
-      <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="live-tab" data-bs-toggle="pill" data-bs-target="#live-view" type="button"
-          role="tab"><i class="fa-solid fa-satellite-dish me-2"></i>Live Dashboard</button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link" id="history-tab" data-bs-toggle="pill" data-bs-target="#history-view" type="button"
-          role="tab"><i class="fa-solid fa-clock-rotate-left me-2"></i>History Logs</button>
-      </li>
+      <li class="nav-item"><button class="nav-link active" id="live-tab" data-bs-toggle="pill"
+          data-bs-target="#live-view" type="button"><i class="fa-solid fa-satellite-dish me-2"></i>Live
+          Dashboard</button></li>
+      <li class="nav-item"><button class="nav-link" id="history-tab" data-bs-toggle="pill"
+          data-bs-target="#history-view" type="button"><i class="fa-solid fa-clock-rotate-left me-2"></i>History
+          Logs</button></li>
     </ul>
 
     <div class="tab-content" id="dashboardTabsContent">
 
       <div class="tab-pane fade show active" id="live-view" role="tabpanel">
-
         <div class="row align-items-center mb-4 bg-white p-3 rounded shadow-sm mx-0">
           <div class="col-md-6 mb-3 mb-md-0">
             <div class="input-group">
@@ -247,19 +245,15 @@
           </div>
           <div class="col-md-6 text-md-end">
             <div class="btn-group" role="group">
-              <input type="radio" class="btn-check view-selector" name="viewType" id="view-card" value="card"
-                autocomplete="off" checked>
+              <input type="radio" class="btn-check view-selector" name="viewType" id="view-card" value="card" checked>
               <label class="btn btn-outline-secondary btn-sm" for="view-card"><i class="fa-solid fa-border-all"></i>
                 Card</label>
-
-              <input type="radio" class="btn-check view-selector" name="viewType" id="view-list" value="list"
-                autocomplete="off">
+              <input type="radio" class="btn-check view-selector" name="viewType" id="view-list" value="list">
               <label class="btn btn-outline-secondary btn-sm" for="view-list"><i class="fa-solid fa-list"></i>
                 List</label>
             </div>
           </div>
         </div>
-
         <div id="bot-container">
           <div class="text-center mt-5">
             <div class="spinner-border text-primary" role="status"></div>
@@ -270,15 +264,23 @@
 
       <div class="tab-pane fade" id="history-view" role="tabpanel">
         <div class="bg-white rounded shadow-sm p-3">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold m-0 text-primary"><i class="fa-solid fa-database me-2"></i>ประวัติการรันล่าสุด (Latest
-              500 records)</h5>
-            <span class="badge bg-light text-dark border">อัปเดตแบบ Real-time</span>
+          <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+            <h5 class="fw-bold m-0 text-primary mb-2 mb-md-0"><i class="fa-solid fa-database me-2"></i>ประวัติการรัน
+              (Latest 1,000 records)</h5>
+            <div class="d-flex align-items-center">
+              <label class="text-muted small me-2 text-nowrap">แสดงหน้าละ:</label>
+              <select id="pageSizeSelect" class="form-select form-select-sm" style="width: auto;">
+                <option value="10">10</option>
+                <option value="25" selected>25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+            </div>
           </div>
 
-          <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+          <div class="table-responsive" style="min-height: 400px;">
             <table class="table table-hover table-compact table-bordered mb-0">
-              <thead class="table-dark" style="position: sticky; top: 0; z-index: 1;">
+              <thead class="table-dark">
                 <tr>
                   <th width="18%">Date / Time</th>
                   <th width="20%">Bot Name</th>
@@ -289,12 +291,20 @@
               </thead>
               <tbody id="history-container">
                 <tr>
-                  <td colspan="5" class="text-center py-4 text-muted"><i
-                      class="fa-solid fa-spinner fa-spin me-2"></i>กำลังโหลดประวัติ...</td>
+                  <td colspan="5" class="text-center py-5 text-muted"><i
+                      class="fa-solid fa-spinner fa-spin fs-4 mb-2"></i><br>กำลังโหลดประวัติ...</td>
                 </tr>
               </tbody>
             </table>
           </div>
+
+          <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap">
+            <div class="text-muted small mb-2" id="page-info">กำลังโหลดข้อมูล...</div>
+            <nav>
+              <ul class="pagination pagination-sm mb-2" id="pagination-container"></ul>
+            </nav>
+          </div>
+
         </div>
       </div>
 
@@ -310,10 +320,8 @@
         </div>
         <div class="modal-body">
           <form id="editForm">
-            <div class="mb-3">
-              <label class="form-label fw-bold">Bot Name</label>
-              <input type="text" class="form-control bg-light" id="editBotName" readonly>
-            </div>
+            <div class="mb-3"><label class="form-label fw-bold">Bot Name</label><input type="text"
+                class="form-control bg-light" id="editBotName" readonly></div>
             <div class="mb-3">
               <label class="form-label fw-bold">Status</label>
               <select class="form-select" id="editStatus">
@@ -322,14 +330,10 @@
                 <option value="Failed">Failed</option>
               </select>
             </div>
-            <div class="mb-3">
-              <label class="form-label fw-bold">Stage</label>
-              <input type="text" class="form-control" id="editStage">
-            </div>
-            <div class="mb-3">
-              <label class="form-label fw-bold">Error Message</label>
-              <textarea class="form-control" id="editError" rows="2"></textarea>
-            </div>
+            <div class="mb-3"><label class="form-label fw-bold">Stage</label><input type="text" class="form-control"
+                id="editStage"></div>
+            <div class="mb-3"><label class="form-label fw-bold">Error Message</label><textarea class="form-control"
+                id="editError" rows="2"></textarea></div>
           </form>
         </div>
         <div class="modal-footer bg-light">
@@ -346,28 +350,26 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    // 🚨 ใส่ URL Firebase ของคุณให้ถูกต้อง
-    const firebaseConfig = {
-      databaseURL: "https://com7-rpa-log-default-rtdb.asia-southeast1.firebasedatabase.app/"
-    };
+    // 🚨 อย่าลืมแก้ URL เป็นของโปรเจกต์คุณนะครับ
+    const firebaseConfig = { databaseURL: "https://com7-rpa-log-default-rtdb.asia-southeast1.firebasedatabase.app/" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // ตัวแปร Global
-    const botContainer = document.getElementById('bot-container');
-    const historyContainer = document.getElementById('history-container');
-    const searchInput = document.getElementById('searchInput');
+    // Global Variables
     let latestLiveData = null;
     let historyData = [];
     let currentLiveView = 'card';
     let searchQuery = '';
     let editModalInstance = null;
 
-    document.addEventListener("DOMContentLoaded", function () {
+    // Pagination Variables
+    let currentPage = 1;
+    let rowsPerPage = 25;
+
+    document.addEventListener("DOMContentLoaded", () => {
       editModalInstance = new bootstrap.Modal(document.getElementById('editModal'));
     });
 
-    // Utility: ดึงสี/ไอคอน
     function getStatusStyle(status) {
       if (status === "Running") return { class: "status-Running", icon: "fa-spinner fa-spin", textClass: "text-info" };
       if (status === "Success") return { class: "status-Success", icon: "fa-check-circle", textClass: "text-success" };
@@ -375,23 +377,17 @@
       return { class: "bg-secondary", icon: "fa-circle-question", textClass: "text-secondary" };
     }
 
-    // ==========================================
-    // 1. ระบบ Live Dashboard (ดึงข้อมูล + วาดหน้าจอ + ค้นหา)
-    // ==========================================
+    /* ==============================================
+       1. LIVE DASHBOARD SYSTEM 
+       ============================================== */
     function renderLiveDashboard() {
-      if (!latestLiveData) {
-        botContainer.innerHTML = '<div class="text-center mt-5"><p class="text-muted">ยังไม่มีข้อมูล Bot ในระบบ</p></div>';
-        return;
-      }
+      const botContainer = document.getElementById('bot-container');
+      if (!latestLiveData) { botContainer.innerHTML = '<div class="text-center mt-5"><p class="text-muted">ยังไม่มีข้อมูล</p></div>'; return; }
 
       let html = '';
-      // กรองชื่อบอทตามช่อง Search
       const botNames = Object.keys(latestLiveData).filter(name => name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-      if (botNames.length === 0) {
-        botContainer.innerHTML = '<div class="text-center mt-5"><i class="fa-solid fa-magnifying-glass text-muted fs-1 mb-3"></i><p class="text-muted">ไม่พบชื่อ Bot ที่ค้นหา</p></div>';
-        return;
-      }
+      if (botNames.length === 0) { botContainer.innerHTML = '<div class="text-center mt-5"><p class="text-muted">ไม่พบชื่อ Bot ที่ค้นหา</p></div>'; return; }
 
       if (currentLiveView === 'card') {
         html += '<div class="row">';
@@ -400,57 +396,41 @@
           const st = getStatusStyle(info.status);
           const timeDisplay = info.status_datetime || info.last_update || '-';
           const errorHtml = info.error_message ? `<div class="alert alert-danger mt-3 p-1 px-2 text-sm" style="font-size:0.75rem;"><i class="fa-solid fa-triangle-exclamation"></i> ${info.error_message}</div>` : '';
-
           html += `
                     <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
                         <div class="card card-bot h-100">
                             <div class="position-absolute top-0 end-0 p-2 action-btns z-1">
-                                <button class="btn btn-sm btn-light text-primary border shadow-sm py-0 px-2" onclick="openEditModal('${botName}')" title="แก้ไข"><i class="fa-solid fa-pen" style="font-size:0.8rem;"></i></button>
-                                <button class="btn btn-sm btn-light text-danger border shadow-sm py-0 px-2 ms-1" onclick="deleteBot('${botName}')" title="ลบ"><i class="fa-solid fa-trash" style="font-size:0.8rem;"></i></button>
+                                <button class="btn btn-sm btn-light text-primary border py-0 px-2" onclick="openEditModal('${botName}')"><i class="fa-solid fa-pen" style="font-size:0.8rem;"></i></button>
+                                <button class="btn btn-sm btn-light text-danger border py-0 px-2 ms-1" onclick="deleteBot('${botName}')"><i class="fa-solid fa-trash" style="font-size:0.8rem;"></i></button>
                             </div>
                             <div class="card-body pt-4 pb-2">
-                                <h6 class="fw-bold mb-3 text-truncate" title="${botName}"><i class="fa-solid fa-robot text-secondary me-1"></i> ${botName}</h6>
+                                <h6 class="fw-bold mb-3 text-truncate"><i class="fa-solid fa-robot text-secondary me-1"></i> ${botName}</h6>
                                 <span class="badge ${st.class} status-badge mb-3"><i class="fa-solid ${st.icon}"></i> ${info.status}</span>
                                 <p class="card-text m-0 text-muted" style="font-size:0.75rem;">Stage:</p>
                                 <p class="card-text fw-semibold text-primary" style="font-size:0.9rem;">${info.stage}</p>
                                 ${errorHtml}
                             </div>
-                            <div class="card-footer bg-transparent text-muted border-0 pt-0" style="font-size: 0.7rem;">
-                                <i class="fa-regular fa-clock"></i> ${timeDisplay}
-                            </div>
+                            <div class="card-footer bg-transparent text-muted border-0 pt-0" style="font-size: 0.7rem;"><i class="fa-regular fa-clock"></i> ${timeDisplay}</div>
                         </div>
                     </div>`;
         });
         html += '</div>';
-      }
-      else if (currentLiveView === 'list') {
+      } else {
         html += `
             <div class="table-responsive bg-white rounded shadow-sm">
-                <table class="table table-hover align-middle mb-0 text-sm" style="font-size: 0.9rem;">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Bot Name</th>
-                            <th>Status</th>
-                            <th>Current Stage</th>
-                            <th>Date / Time</th>
-                            <th class="text-center">Action</th>
-                        </tr>
-                    </thead>
+                <table class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
+                    <thead class="table-light"><tr><th>Bot Name</th><th>Status</th><th>Current Stage</th><th>Date / Time</th><th class="text-center">Action</th></tr></thead>
                     <tbody>`;
         botNames.forEach(botName => {
           const info = latestLiveData[botName];
           const st = getStatusStyle(info.status);
           const timeDisplay = info.status_datetime || info.last_update || '-';
-          const stageDisplay = info.status === "Failed" && info.error_message
-            ? `<span>${info.stage}</span> <br><small class="text-danger"><i class="fa-solid fa-triangle-exclamation"></i> ${info.error_message}</small>`
-            : info.stage;
-
+          const stageDisplay = info.status === "Failed" && info.error_message ? `<span>${info.stage}</span> <br><small class="text-danger"><i class="fa-solid fa-triangle-exclamation"></i> ${info.error_message}</small>` : info.stage;
           html += `
                     <tr>
                         <td class="fw-bold"><i class="fa-solid fa-robot text-secondary me-2"></i>${botName}</td>
                         <td><span class="badge ${st.class} table-status-badge"><i class="fa-solid ${st.icon}"></i> ${info.status}</span></td>
-                        <td>${stageDisplay}</td>
-                        <td class="text-muted" style="font-size:0.85rem;">${timeDisplay}</td>
+                        <td>${stageDisplay}</td><td class="text-muted" style="font-size:0.85rem;">${timeDisplay}</td>
                         <td class="text-center action-btns">
                             <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="openEditModal('${botName}')"><i class="fa-solid fa-pen" style="font-size:0.7rem;"></i></button>
                             <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteBot('${botName}')"><i class="fa-solid fa-trash" style="font-size:0.7rem;"></i></button>
@@ -459,43 +439,41 @@
         });
         html += `</tbody></table></div>`;
       }
-      botContainer.innerHTML = html;
+      document.getElementById('bot-container').innerHTML = html;
     }
 
-    // ดึง Live Data
-    db.ref('rpa_live_status').on('value', (snapshot) => {
-      latestLiveData = snapshot.val();
-      renderLiveDashboard();
-    });
+    db.ref('rpa_live_status').on('value', (snapshot) => { latestLiveData = snapshot.val(); renderLiveDashboard(); });
+    document.getElementById('searchInput').addEventListener('input', (e) => { searchQuery = e.target.value; renderLiveDashboard(); });
+    document.querySelectorAll('.view-selector').forEach(radio => { radio.addEventListener('change', (e) => { currentLiveView = e.target.value; renderLiveDashboard(); }); });
 
-    // จับ Event การ Search
-    searchInput.addEventListener('input', (e) => {
-      searchQuery = e.target.value;
-      renderLiveDashboard();
-    });
-
-    // เปลี่ยน View (Card / List)
-    document.querySelectorAll('.view-selector').forEach(radio => {
-      radio.addEventListener('change', (e) => {
-        currentLiveView = e.target.value;
-        renderLiveDashboard();
-      });
-    });
-
-    // ==========================================
-    // 2. ระบบ History Logs (โหลด 500 รายการล่าสุด)
-    // ==========================================
-    function renderHistoryLogs() {
+    /* ==============================================
+       2. HISTORY LOGS SYSTEM (With Pagination)
+       ============================================== */
+    function renderHistoryTable() {
+      const tbody = document.getElementById('history-container');
       if (historyData.length === 0) {
-        historyContainer.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">ยังไม่มีประวัติการรัน</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">ยังไม่มีประวัติการรัน</td></tr>';
+        document.getElementById('page-info').innerHTML = '';
+        document.getElementById('pagination-container').innerHTML = '';
         return;
       }
 
+      // คำนวณขอบเขตข้อมูลที่จะโชว์ในหน้านี้ (Slicing Array)
+      const totalItems = historyData.length;
+      const totalPages = Math.ceil(totalItems / rowsPerPage);
+
+      // กันเหนียวกรณีลบหน้าสุดท้ายแล้วหน้าปัจจุบันเกิน
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      const startIndex = (currentPage - 1) * rowsPerPage;
+      const endIndex = Math.min(startIndex + rowsPerPage, totalItems);
+      const paginatedData = historyData.slice(startIndex, endIndex);
+
+      // วาดตารางเฉพาะข้อมูลในหน้าปัจจุบัน
       let html = '';
-      historyData.forEach(log => {
+      paginatedData.forEach(log => {
         const st = getStatusStyle(log.status);
         const errorText = log.error_message ? `<span class="text-danger"><i class="fa-solid fa-triangle-exclamation"></i> ${log.error_message}</span>` : `<span class="text-success">-</span>`;
-
         html += `
                 <tr>
                     <td class="text-muted">${log.status_datetime || '-'}</td>
@@ -503,29 +481,75 @@
                     <td><span class="${st.textClass} fw-bold" style="font-size:0.8rem;"><i class="fa-solid ${st.icon}"></i> ${log.status}</span></td>
                     <td class="text-primary">${log.stage}</td>
                     <td style="font-size:0.8rem;">${errorText}</td>
-                </tr>
-            `;
+                </tr>`;
       });
-      historyContainer.innerHTML = html;
+      tbody.innerHTML = html;
+
+      // วาดปุ่มตัวเลข Pagination
+      document.getElementById('page-info').innerHTML = `แสดงผลแถวที่ <b>${startIndex + 1} - ${endIndex}</b> จากทั้งหมด ${totalItems} รายการ`;
+      renderPaginationButtons(totalPages);
     }
 
-    // ดึง History Data (จำกัด 500 รายการ ป้องกันเว็บค้าง)
-    db.ref('rpa_history_logs').orderByChild('status_datetime').limitToLast(500).on('value', (snapshot) => {
+    function renderPaginationButtons(totalPages) {
+      const ul = document.getElementById('pagination-container');
+      let pHtml = '';
+
+      // ปุ่ม Prev
+      pHtml += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" onclick="goToPage(${currentPage - 1})">ก่อนหน้า</a>
+                  </li>`;
+
+      // คำนวณช่วงเลขหน้าที่จะโชว์ (สูงสุดโชว์แค่ 5 ปุ่ม กันมันล้นขอบจอ)
+      let startPage = Math.max(1, currentPage - 2);
+      let endPage = Math.min(totalPages, currentPage + 2);
+
+      if (startPage > 1) { pHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`; }
+
+      for (let i = startPage; i <= endPage; i++) {
+        pHtml += `<li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" onclick="goToPage(${i})">${i}</a>
+                      </li>`;
+      }
+
+      if (endPage < totalPages) { pHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`; }
+
+      // ปุ่ม Next
+      pHtml += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" onclick="goToPage(${currentPage + 1})">ถัดไป</a>
+                  </li>`;
+
+      ul.innerHTML = pHtml;
+    }
+
+    // ฟังก์ชันเปลี่ยนหน้า
+    window.goToPage = function (pageNumber) {
+      currentPage = pageNumber;
+      renderHistoryTable();
+    };
+
+    // Event เมื่อเปลี่ยนจำนวนแถวต่อหน้า
+    document.getElementById('pageSizeSelect').addEventListener('change', function () {
+      rowsPerPage = parseInt(this.value);
+      currentPage = 1; // กลับไปหน้า 1 เสมอเมื่อเปลี่ยนจำนวน
+      renderHistoryTable();
+    });
+
+    // ดึง History Data (เพิ่มเป็น 1000 แถว เพราะเรามี Paging แล้ว)
+    db.ref('rpa_history_logs').orderByChild('status_datetime').limitToLast(1000).on('value', (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        // แปลง Object เป็น Array แล้วสลับให้รายการใหม่สุดอยู่ด้านบน
         historyData = Object.values(data).sort((a, b) => {
           const timeA = a.status_datetime || "";
           const timeB = b.status_datetime || "";
           return timeB.localeCompare(timeA);
         });
-        renderHistoryLogs();
+        renderHistoryTable();
       }
     });
 
-    // ==========================================
-    // 3. ฟังก์ชัน Edit / Delete (อัปเดตเฉพาะ Live Status)
-    // ==========================================
+    /* ==============================================
+       3. EDIT / DELETE FUNCTIONS
+       ============================================== */
     window.openEditModal = function (botName) {
       const info = latestLiveData[botName];
       document.getElementById('editBotName').value = botName;
@@ -537,36 +561,20 @@
 
     window.saveBotEdit = function () {
       const botName = document.getElementById('editBotName').value;
-
-      // สร้างเวลาปัจจุบันเพื่ออัปเดตลง Log
       const now = new Date();
       const formattedTime = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+      const updateData = { status: document.getElementById('editStatus').value, stage: document.getElementById('editStage').value, error_message: document.getElementById('editError').value, status_datetime: formattedTime };
 
-      const updateData = {
-        status: document.getElementById('editStatus').value,
-        stage: document.getElementById('editStage').value,
-        error_message: document.getElementById('editError').value,
-        status_datetime: formattedTime
-      };
-
-      // 1. อัปเดต Live
-      db.ref('rpa_live_status/' + botName).update(updateData)
-        .then(() => {
-          editModalInstance.hide();
-          // 2. เด้งไปบันทึกเป็นประวัติการแก้ไขใน History ด้วย (Optional แต่แนะนำ)
-          updateData.bot_name = botName + " (Manual Edit)";
-          db.ref('rpa_history_logs').push(updateData);
-        })
-        .catch(err => alert("เกิดข้อผิดพลาด: " + err));
+      db.ref('rpa_live_status/' + botName).update(updateData).then(() => {
+        editModalInstance.hide();
+        updateData.bot_name = botName + " (Manual Edit)";
+        db.ref('rpa_history_logs').push(updateData);
+      }).catch(err => alert("Error: " + err));
     };
 
     window.deleteBot = function (botName) {
-      if (confirm(`⚠️ ต้องการลบสถานะของ "${botName}" ออกจากหน้า Live Dashboard ใช่หรือไม่?\n(ข้อมูลใน History จะยังคงอยู่)`)) {
-        db.ref('rpa_live_status/' + botName).remove()
-          .catch(err => alert("ลบไม่สำเร็จ: " + err));
-      }
+      if (confirm(`⚠️ ลบสถานะของ "${botName}" ออกจาก Live Dashboard?`)) { db.ref('rpa_live_status/' + botName).remove(); }
     };
-
   </script>
 </body>
 
