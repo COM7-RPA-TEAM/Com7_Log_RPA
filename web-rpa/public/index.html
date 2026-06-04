@@ -36,6 +36,51 @@
       --font-term: 'VT323', 'Kanit', monospace;
     }
 
+    /* ===== LIGHT THEME (สลับด้วยปุ่มมุมขวาบน) — override เฉพาะตัวแปรสี ===== */
+    body.theme-light {
+      --c-bg: #e4e7f1;
+      --c-panel: #ffffff;
+      --c-panel2: #eef1fa;
+      --c-line: #c2c6da;
+      --c-white: #1b1c33;
+      /* ^ ตัวแปรนี้คือ "สีตัวอักษรหลัก" -> ทำให้เข้มบนพื้นสว่าง */
+      --c-grey: #5b5e7a;
+      --c-lav: #7b6fa6;
+    }
+
+    /* accent ที่ใช้เป็น "สีตัวอักษร" ปรับให้เข้มขึ้นเพื่ออ่านออกบนพื้นขาว
+       (ส่วนที่ใช้เป็นพื้นหลัง badge/ปุ่ม ยังใช้สีสดเหมือนเดิม) */
+    body.theme-light .text-success {
+      color: #0a8f30 !important;
+    }
+
+    body.theme-light .text-primary,
+    body.theme-light .text-info {
+      color: #1172c4 !important;
+    }
+
+    body.theme-light .text-warning {
+      color: #b36d00 !important;
+    }
+
+    body.theme-light .text-danger {
+      color: #e10046 !important;
+    }
+
+    body.theme-light .text-secondary {
+      color: #6d6390 !important;
+    }
+
+    /* กล่องไอคอน KPI ให้เป็นจอเข้มเสมอ เพื่อให้ sprite สีนีออนเด่นในทั้งสองธีม */
+    body.theme-light .kpi-icon {
+      background: #15162b !important;
+    }
+
+    /* scanline เบาลงบนธีมสว่าง ไม่ให้ดูหม่น */
+    body.theme-light::after {
+      background: repeating-linear-gradient(0deg, rgba(0, 0, 0, .05) 0px, rgba(0, 0, 0, .05) 1px, transparent 2px, transparent 4px);
+    }
+
     * {
       image-rendering: pixelated;
     }
@@ -228,7 +273,7 @@
       position: absolute;
       width: 6px;
       height: 6px;
-      background: var(--c-white);
+      background: #FFF1E8;
       animation: twinkle 1.4s steps(2) infinite;
     }
 
@@ -411,6 +456,12 @@
       border-left-color: var(--c-orange);
     }
 
+    /* ชื่อบอทใน Alert: น้ำหนักปกติ (เลี่ยง faux-bold ของ VT323 ที่ดูหนาเกิน) */
+    .alert-row .fw-bold {
+      font-weight: 400 !important;
+      font-size: 1.1rem;
+    }
+
     .alert-danger {
       background: #2a0a16 !important;
       border: 2px solid var(--c-red) !important;
@@ -517,7 +568,7 @@
       font-family: var(--font-pixel);
       font-size: .55rem;
       background: var(--c-purple) !important;
-      color: var(--c-white) !important;
+      color: #FFF1E8 !important;
       border: 2px solid #000 !important;
       letter-spacing: 1px;
       line-height: 1.6;
@@ -584,6 +635,7 @@
 
     .modal-header {
       background: var(--c-purple) !important;
+      color: #FFF1E8;
       border-bottom: 3px solid #000 !important;
     }
 
@@ -649,10 +701,34 @@
       background: var(--c-lav);
       border: 3px solid #000;
     }
+
+    /* ===== ปุ่มสลับธีม (Dark/Light) ===== */
+    .theme-toggle {
+      position: fixed;
+      top: 12px;
+      right: 14px;
+      z-index: 10000;
+      font-family: var(--font-pixel);
+      font-size: .55rem;
+      background: var(--c-panel2);
+      color: var(--c-white);
+      border: 3px solid #000;
+      box-shadow: 0 4px 0 0 #000;
+      padding: 9px 12px;
+      cursor: pointer;
+      letter-spacing: 1px;
+    }
+
+    .theme-toggle:active {
+      transform: translateY(3px);
+      box-shadow: none;
+    }
   </style>
 </head>
 
 <body>
+
+  <button id="themeToggle" class="theme-toggle" title="สลับธีม Dark / Light"><i class="fa-solid fa-sun"></i> <span id="themeLabel">LIGHT</span></button>
 
   <div class="hero-section">
     <!-- twinkling pixel stars -->
@@ -1330,8 +1406,9 @@
         return;
       }
       // ธีม pixel: ฟอนต์ Press Start 2P, สีนีออน, แท่งเหลี่ยม
+      const txt = getComputedStyle(document.body).getPropertyValue('--c-white').trim() || '#FFF1E8';
       if (Chart.defaults) {
-        Chart.defaults.color = '#FFF1E8';
+        Chart.defaults.color = txt;
         Chart.defaults.font.family = "'Press Start 2P', 'Kanit', sans-serif";
         Chart.defaults.font.size = 7;
       }
@@ -1349,10 +1426,10 @@
           responsive: true,
           maintainAspectRatio: true,
           scales: {
-            x: { grid: pixelGrid, ticks: { font: { size: 7 } } },
-            y: { beginAtZero: true, grid: pixelGrid, ticks: { precision: 0, font: { size: 7 } } }
+            x: { grid: pixelGrid, ticks: { color: txt, font: { size: 7 } } },
+            y: { beginAtZero: true, grid: pixelGrid, ticks: { color: txt, precision: 0, font: { size: 7 } } }
           },
-          plugins: { legend: { position: 'top', labels: { boxWidth: 12, padding: 14 } } }
+          plugins: { legend: { position: 'top', labels: { color: txt, boxWidth: 12, padding: 14 } } }
         }
       });
     }
@@ -1407,6 +1484,40 @@
       renderAnalytics();
       if (trendChart) trendChart.resize();
     });
+
+    /* ==============================================
+       THEME TOGGLE (Dark = เดิม / Light = ใหม่) — จำค่าใน localStorage
+       ============================================== */
+    function applyChartTheme() {
+      if (typeof Chart === 'undefined') return;
+      const txt = getComputedStyle(document.body).getPropertyValue('--c-white').trim() || '#FFF1E8';
+      Chart.defaults.color = txt;
+      if (trendChart) {
+        trendChart.options.scales.x.ticks.color = txt;
+        trendChart.options.scales.y.ticks.color = txt;
+        trendChart.options.plugins.legend.labels.color = txt;
+        trendChart.update();
+      }
+    }
+
+    function applyTheme(theme) {
+      const isLight = theme === 'light';
+      document.body.classList.toggle('theme-light', isLight);
+      // ปุ่มแสดง "ทางเลือกที่จะสลับไป"
+      document.getElementById('themeToggle').innerHTML = isLight
+        ? '<i class="fa-solid fa-moon"></i> <span>DARK</span>'
+        : '<i class="fa-solid fa-sun"></i> <span>LIGHT</span>';
+      localStorage.setItem('rpa_theme', theme);
+      applyChartTheme();
+    }
+
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      const cur = document.body.classList.contains('theme-light') ? 'light' : 'dark';
+      applyTheme(cur === 'light' ? 'dark' : 'light');
+    });
+
+    // โหลดธีมที่เคยเลือกไว้ (ค่าเริ่มต้น = dark ตามของเดิม)
+    applyTheme(localStorage.getItem('rpa_theme') || 'dark');
 
     /* ==============================================
        2. HISTORY LOGS SYSTEM (With Pagination)
