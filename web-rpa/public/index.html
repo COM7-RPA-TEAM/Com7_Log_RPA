@@ -7,81 +7,599 @@
   <title>RPA Enterprise Dashboard</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Kanit:wght@400;600&display=swap"
+    rel="stylesheet">
 
   <style>
+    /* ============================================================
+       PIXEL GAME UI THEME  (PICO-8 inspired palette)
+       ============================================================ */
+    :root {
+      --c-bg: #0c0c20;
+      --c-panel: #191933;
+      --c-panel2: #23234d;
+      --c-line: #3a3a6e;
+      --c-white: #FFF1E8;
+      --c-grey: #9a9ac7;
+      --c-red: #FF004D;
+      --c-orange: #FFA300;
+      --c-yellow: #FFEC27;
+      --c-green: #00E436;
+      --c-blue: #29ADFF;
+      --c-purple: #7E2553;
+      --c-lav: #83769C;
+      --c-pink: #FF77A8;
+      --font-pixel: 'Press Start 2P', 'Kanit', sans-serif;
+      --font-term: 'VT323', 'Kanit', monospace;
+    }
+
+    * {
+      image-rendering: pixelated;
+    }
+
+    html,
     body {
-      background-color: #f4f7f6;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       overflow-x: hidden;
     }
 
-    /* Graphics & Animations */
+    body {
+      background-color: var(--c-bg);
+      background-image:
+        linear-gradient(rgba(58, 58, 110, .25) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(58, 58, 110, .25) 1px, transparent 1px);
+      background-size: 32px 32px;
+      font-family: var(--font-term);
+      font-size: 1.15rem;
+      color: var(--c-white);
+      letter-spacing: .5px;
+    }
+
+    /* CRT scanline overlay */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      background: repeating-linear-gradient(0deg, rgba(0, 0, 0, .16) 0px, rgba(0, 0, 0, .16) 1px, transparent 2px, transparent 4px);
+      animation: flicker 4s steps(2) infinite;
+    }
+
+    @keyframes flicker {
+
+      0%,
+      100% {
+        opacity: .85;
+      }
+
+      50% {
+        opacity: .7;
+      }
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-family: var(--font-pixel);
+      letter-spacing: 1px;
+      line-height: 1.5;
+    }
+
+    /* หัวข้อ: ใช้ฟอนต์ terminal + Kanit (เข้ากันดีเมื่อปนไทย-อังกฤษบรรทัดเดียว)
+       Press Start 2P สงวนไว้เฉพาะข้อความอังกฤษ/ตัวเลขล้วน */
+    h5 {
+      font-family: var(--font-term);
+      font-weight: 600 !important;
+      font-size: 1.4rem;
+      letter-spacing: .5px;
+    }
+
+    h6 {
+      font-family: var(--font-term);
+      font-weight: 600 !important;
+      font-size: 1.2rem;
+      letter-spacing: .5px;
+    }
+
+    /* ---- surfaces: turn every Bootstrap surface into a pixel panel ---- */
+    .card,
+    .kpi-card,
+    .alert-panel,
+    .bg-white,
+    .bg-light {
+      background: var(--c-panel) !important;
+      color: var(--c-white);
+      border: 3px solid #000 !important;
+      border-radius: 0 !important;
+      box-shadow: 0 0 0 3px var(--c-lav), 6px 6px 0 0 rgba(0, 0, 0, .55) !important;
+    }
+
+    .card-body {
+      background: transparent;
+    }
+
+    .rounded,
+    .rounded-3,
+    .shadow-sm {
+      border-radius: 0 !important;
+    }
+
+    /* ---- text color overrides for dark bg ---- */
+    .text-muted {
+      color: var(--c-grey) !important;
+    }
+
+    .text-dark {
+      color: var(--c-white) !important;
+    }
+
+    .text-secondary {
+      color: var(--c-lav) !important;
+    }
+
+    .text-primary {
+      color: var(--c-blue) !important;
+    }
+
+    .text-success {
+      color: var(--c-green) !important;
+    }
+
+    .text-danger {
+      color: var(--c-red) !important;
+    }
+
+    .text-warning {
+      color: var(--c-orange) !important;
+    }
+
+    .text-info {
+      color: var(--c-blue) !important;
+    }
+
+    /* ============ HERO ============ */
     .hero-section {
-      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-      color: white;
       position: relative;
-      padding: 3rem 0 5rem 0;
+      background: linear-gradient(180deg, #1a0b3b 0%, #2a1a5e 55%, #0c0c20 100%);
+      border-bottom: 4px solid #000;
+      padding: 2.2rem 0 2.8rem 0;
       overflow: hidden;
     }
 
-    .wave-container {
+    .hero-title {
+      font-family: var(--font-pixel);
+      font-size: clamp(1rem, 3.6vw, 1.9rem);
+      color: var(--c-yellow);
+      text-shadow: 3px 3px 0 var(--c-red), 6px 6px 0 #000;
+      margin: 0;
+    }
+
+    .hero-sub {
+      font-family: var(--font-pixel);
+      font-size: .58rem;
+      color: var(--c-green);
+      margin: .7rem 0 0 0;
+      letter-spacing: 2px;
+      animation: blink 1.2s steps(2) infinite;
+    }
+
+    .px-robot {
+      width: 86px;
+      height: 86px;
+      animation: bob .7s steps(2) infinite;
+    }
+
+    @keyframes bob {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-8px);
+      }
+    }
+
+    .px-robot .eye {
+      animation: eyeblink 3s steps(1) infinite;
+    }
+
+    @keyframes eyeblink {
+
+      0%,
+      92%,
+      100% {
+        opacity: 1;
+      }
+
+      95% {
+        opacity: 0;
+      }
+    }
+
+    .star {
       position: absolute;
-      bottom: 0;
+      width: 6px;
+      height: 6px;
+      background: var(--c-white);
+      animation: twinkle 1.4s steps(2) infinite;
+    }
+
+    @keyframes twinkle {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0;
+      }
+    }
+
+    .hero-ground {
+      position: absolute;
       left: 0;
-      width: 100%;
-      overflow: hidden;
-      line-height: 0;
+      right: 0;
+      bottom: 0;
+      height: 16px;
+      background: repeating-linear-gradient(90deg, var(--c-purple) 0 16px, #5a1a3d 16px 32px);
+      border-top: 4px solid #000;
     }
 
-    .wave-svg {
+    /* ============ TABS ============ */
+    .nav-pills {
+      gap: 10px;
+    }
+
+    .nav-pills .nav-link {
+      font-family: var(--font-pixel);
+      font-size: .62rem;
+      color: var(--c-white);
+      background: var(--c-panel2);
+      border: 3px solid #000;
+      border-radius: 0;
+      box-shadow: 0 4px 0 0 #000;
+      padding: 12px 16px;
+    }
+
+    .nav-pills .nav-link.active {
+      background: var(--c-green);
+      color: #06210f;
+      box-shadow: 0 0 0 3px var(--c-yellow), 0 4px 0 0 #000;
+    }
+
+    .nav-pills .nav-link:active {
+      transform: translateY(3px);
+      box-shadow: none;
+    }
+
+    /* ============ KPI ============ */
+    .kpi-card {
+      padding: .9rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: .8rem;
+      height: 100%;
+    }
+
+    .kpi-icon {
+      width: 54px;
+      height: 54px;
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--c-panel2) !important;
+      border: 3px solid #000;
+    }
+
+    .kpi-icon svg {
+      width: 38px;
+      height: 38px;
+    }
+
+    .kpi-value {
+      font-family: var(--font-pixel);
+      font-size: 1.5rem;
+      line-height: 1;
+    }
+
+    .kpi-label {
+      font-family: var(--font-term);
+      font-size: 1rem;
+      color: var(--c-grey);
+      margin-top: 3px;
+      letter-spacing: .5px;
+    }
+
+    /* ============ BADGES / STATUS ============ */
+    .badge,
+    .status-badge,
+    .table-status-badge {
+      font-family: var(--font-pixel);
+      font-size: .55rem !important;
+      border-radius: 0 !important;
+      border: 2px solid #000;
+      padding: 6px 8px !important;
+      letter-spacing: 1px;
+    }
+
+    .status-Running {
+      background: var(--c-blue) !important;
+      color: #04223a !important;
+    }
+
+    .status-Success {
+      background: var(--c-green) !important;
+      color: #06210f !important;
+    }
+
+    .status-Failed {
+      background: var(--c-red) !important;
+      color: #fff !important;
+    }
+
+    .status-Stale {
+      background: var(--c-orange) !important;
+      color: #3a2400 !important;
+    }
+
+    .bg-danger {
+      background: var(--c-red) !important;
+      color: #fff !important;
+    }
+
+    .bg-secondary {
+      background: var(--c-lav) !important;
+    }
+
+    .bg-primary {
+      background: var(--c-blue) !important;
+    }
+
+    /* ============ BOT CARDS ============ */
+    .card-bot {
       position: relative;
-      display: block;
-      width: calc(100% + 1.3px);
-      height: 60px;
+      transition: transform .1s steps(2);
     }
 
-    .wave-path {
-      fill: #f4f7f6;
-      animation: waveAnim 10s linear infinite;
+    .card-bot:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 0 0 0 3px var(--c-yellow), 8px 8px 0 0 rgba(0, 0, 0, .6) !important;
     }
 
-    @keyframes waveAnim {
-      0% {
-        transform: translateX(0);
-      }
-
-      50% {
-        transform: translateX(-2%);
-      }
-
-      100% {
-        transform: translateX(0);
-      }
+    .card-bot.is-failed {
+      box-shadow: 0 0 0 3px var(--c-red), 6px 6px 0 0 rgba(0, 0, 0, .55) !important;
     }
 
-    .floating-robot {
-      animation: float 3s ease-in-out infinite;
-      filter: drop-shadow(0px 10px 10px rgba(0, 0, 0, 0.2));
+    .card-bot.is-stale {
+      box-shadow: 0 0 0 3px var(--c-orange), 6px 6px 0 0 rgba(0, 0, 0, .55) !important;
     }
 
-    @keyframes float {
-      0% {
-        transform: translateY(0px);
-      }
-
-      50% {
-        transform: translateY(-15px);
-      }
-
-      100% {
-        transform: translateY(0px);
-      }
+    .card-footer {
+      background: transparent !important;
+      border: none !important;
     }
 
-    .spinning-gear {
-      animation: spin 8s linear infinite;
-      transform-origin: center;
-      opacity: 0.2;
+    /* ชื่อบอทในการ์ด: ใช้ฟอนต์ terminal ที่บางกว่า Press Start 2P (อ่านง่ายขึ้น) */
+    .card-bot h6 {
+      font-family: var(--font-term);
+      font-weight: 400 !important;
+      font-size: 1.25rem;
+      letter-spacing: .5px;
+    }
+
+    /* alert rows */
+    .alert-row {
+      border: 2px solid #000;
+      border-left: 8px solid var(--c-red);
+      background: var(--c-panel2);
+      border-radius: 0;
+      padding: .7rem .9rem;
+      margin-bottom: .55rem;
+    }
+
+    .alert-row.stale {
+      border-left-color: var(--c-orange);
+    }
+
+    .alert-danger {
+      background: #2a0a16 !important;
+      border: 2px solid var(--c-red) !important;
+      color: var(--c-red) !important;
+      border-radius: 0 !important;
+    }
+
+    /* ============ FORMS ============ */
+    .form-control,
+    .form-select,
+    .input-group-text {
+      background: var(--c-panel2) !important;
+      color: var(--c-white) !important;
+      border: 3px solid #000 !important;
+      border-radius: 0 !important;
+      font-family: var(--font-term);
+      font-size: 1.05rem;
+      box-shadow: none !important;
+    }
+
+    .form-control::placeholder {
+      color: var(--c-grey);
+    }
+
+    .form-label {
+      font-family: var(--font-term);
+      font-size: 1rem;
+      letter-spacing: .5px;
+    }
+
+    /* ============ BUTTONS ============ */
+    .btn {
+      font-family: var(--font-pixel);
+      font-size: .55rem !important;
+      border-radius: 0 !important;
+      border: 3px solid #000 !important;
+      box-shadow: 0 4px 0 0 #000;
+      letter-spacing: 1px;
+    }
+
+    .btn:active {
+      transform: translateY(3px);
+      box-shadow: none;
+    }
+
+    .btn-primary,
+    .btn-outline-primary {
+      background: var(--c-blue) !important;
+      color: #04223a !important;
+    }
+
+    .btn-success {
+      background: var(--c-green) !important;
+      color: #06210f !important;
+    }
+
+    .btn-secondary,
+    .btn-outline-secondary {
+      background: var(--c-lav) !important;
+      color: #100c1f !important;
+    }
+
+    .btn-danger,
+    .btn-outline-danger {
+      background: var(--c-red) !important;
+      color: #fff !important;
+    }
+
+    .btn-light {
+      background: var(--c-panel2) !important;
+      color: var(--c-white) !important;
+    }
+
+    .btn-close {
+      filter: invert(1);
+    }
+
+    .btn-check:checked+.btn {
+      background: var(--c-yellow) !important;
+      color: #2a2400 !important;
+      box-shadow: 0 0 0 3px var(--c-green), 0 4px 0 0 #000;
+    }
+
+    /* ============ TABLES ============ */
+    .table {
+      color: var(--c-white);
+      border-color: #000;
+    }
+
+    .table-dark,
+    .table-light {
+      --bs-table-bg: var(--c-panel2);
+      background: var(--c-panel2) !important;
+      color: var(--c-white) !important;
+    }
+
+    .table>:not(caption)>*>* {
+      background: transparent;
+      color: var(--c-white);
+      border-color: #000;
+    }
+
+    .table thead th {
+      font-family: var(--font-pixel);
+      font-size: .55rem;
+      background: var(--c-purple) !important;
+      color: var(--c-white) !important;
+      border: 2px solid #000 !important;
+      letter-spacing: 1px;
+      line-height: 1.6;
+    }
+
+    .table-hover tbody tr:hover>* {
+      background: rgba(131, 118, 156, .18) !important;
+    }
+
+    .table-compact td,
+    .table-compact th {
+      padding: .55rem .6rem;
+      font-size: 1rem;
+      vertical-align: middle;
+    }
+
+    /* ============ PAGINATION ============ */
+    .pagination {
+      cursor: pointer;
+      gap: 4px;
+      margin-bottom: 0;
+    }
+
+    .page-link {
+      font-family: var(--font-pixel);
+      font-size: .55rem;
+      background: var(--c-panel2);
+      color: var(--c-white);
+      border: 2px solid #000;
+      border-radius: 0 !important;
+    }
+
+    .page-item.active .page-link {
+      background: var(--c-green);
+      color: #06210f;
+      border-color: #000;
+    }
+
+    .page-item.disabled .page-link {
+      background: #101028;
+      color: #55557a;
+    }
+
+    /* ============ PROGRESS ============ */
+    .progress {
+      background: #101028 !important;
+      border: 2px solid #000;
+      border-radius: 0 !important;
+      height: 8px !important;
+    }
+
+    .progress-bar {
+      background: var(--c-red) !important;
+    }
+
+    /* ============ MODAL ============ */
+    .modal-content {
+      background: var(--c-panel) !important;
+      color: var(--c-white);
+      border: 4px solid #000 !important;
+      border-radius: 0 !important;
+      box-shadow: 0 0 0 4px var(--c-lav), 10px 10px 0 0 rgba(0, 0, 0, .6);
+    }
+
+    .modal-header {
+      background: var(--c-purple) !important;
+      border-bottom: 3px solid #000 !important;
+    }
+
+    .modal-header .modal-title {
+      font-size: 1.25rem;
+    }
+
+    .modal-footer {
+      border-top: 3px solid #000 !important;
+      background: var(--c-panel2) !important;
+    }
+
+    /* spinner → chunky pixel spin */
+    .spinner-border {
+      border-radius: 0 !important;
+      animation: spin .8s steps(8) infinite !important;
     }
 
     @keyframes spin {
@@ -90,51 +608,26 @@
       }
     }
 
-    /* UI Styles */
-    .card-bot {
-      transition: transform 0.2s, box-shadow 0.2s;
-      border-radius: 12px;
-      border: none;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-      position: relative;
+    /* blink + interactions */
+    .blink {
+      animation: blink .8s steps(2) infinite;
     }
 
-    .card-bot:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-    }
+    @keyframes blink {
 
-    .status-Running {
-      background-color: #0dcaf0;
-      color: white;
-    }
+      0%,
+      100% {
+        opacity: 1;
+      }
 
-    .status-Success {
-      background-color: #198754;
-      color: white;
-    }
-
-    .status-Failed {
-      background-color: #dc3545;
-      color: white;
-    }
-
-    .status-badge {
-      font-size: 0.85em;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-weight: 600;
-    }
-
-    .table-status-badge {
-      font-size: 0.8em;
-      padding: 4px 8px;
-      border-radius: 12px;
+      50% {
+        opacity: .25;
+      }
     }
 
     .action-btns {
-      opacity: 0.3;
-      transition: 0.3s;
+      opacity: .55;
+      transition: .2s;
     }
 
     .card-bot:hover .action-btns,
@@ -142,83 +635,68 @@
       opacity: 1;
     }
 
-    .table-compact td,
-    .table-compact th {
-      padding: 0.5rem 0.6rem;
-      font-size: 0.85rem;
-      vertical-align: middle;
+    /* pixel scrollbar */
+    ::-webkit-scrollbar {
+      width: 14px;
+      height: 14px;
     }
 
-    .table-compact tbody tr:hover {
-      background-color: #f1f4f8;
+    ::-webkit-scrollbar-track {
+      background: #101028;
     }
 
-    .nav-pills .nav-link {
-      color: #2a5298;
-      font-weight: 600;
-      border-radius: 30px;
-      padding: 8px 20px;
-      margin-right: 10px;
-      transition: 0.3s;
-    }
-
-    .nav-pills .nav-link.active {
-      background-color: #2a5298;
-      color: white;
-      box-shadow: 0 4px 8px rgba(42, 82, 152, 0.3);
-    }
-
-    .pagination {
-      cursor: pointer;
-      margin-bottom: 0;
-    }
-
-    .page-item.active .page-link {
-      background-color: #2a5298;
-      border-color: #2a5298;
+    ::-webkit-scrollbar-thumb {
+      background: var(--c-lav);
+      border: 3px solid #000;
     }
   </style>
 </head>
 
 <body>
 
-  <div class="hero-section shadow-sm">
-    <svg class="spinning-gear position-absolute" style="top: -20px; right: 10%; width: 150px; height: 150px;"
-      viewBox="0 0 100 100" fill="white">
-      <path
-        d="M50,20 c-16.5,0-30,13.5-30,30 c0,16.5,13.5,30,30,30 c16.5,0,30-13.5,30-30 C80,33.5,66.5,20,50,20 z M50,70 c-11,0-20-9-20-20 c0-11,9-20,20-20 c11,0,20,9,20,20 C70,61,61,70,50,70 z" />
-      <path
-        d="M50,5 a5,5 0 0,0 -5,5 v5 a5,5 0 0,0 10,0 v-5 a5,5 0 0,0 -5,-5 zM50,85 a5,5 0 0,0 -5,5 v5 a5,5 0 0,0 10,0 v-5 a5,5 0 0,0 -5,-5 zM95,45 h-5 a5,5 0 0,0 0,10 h5 a5,5 0 0,0 0,-10 zM15,45 h-5 a5,5 0 0,0 0,10 h5 a5,5 0 0,0 0,-10 z" />
-    </svg>
-    <div class="container position-relative z-1 d-flex align-items-center justify-content-center text-center">
-      <svg class="floating-robot me-3" width="70" height="70" viewBox="0 0 24 24" fill="none"
+  <div class="hero-section">
+    <!-- twinkling pixel stars -->
+    <span class="star" style="top:18px; left:12%;"></span>
+    <span class="star" style="top:44px; left:26%; animation-delay:.3s;"></span>
+    <span class="star" style="top:22px; right:16%; animation-delay:.6s; background:var(--c-yellow);"></span>
+    <span class="star" style="top:56px; right:30%; animation-delay:.9s; background:var(--c-green);"></span>
+    <span class="star" style="top:14px; left:58%; animation-delay:.2s;"></span>
+    <span class="star" style="top:62px; left:44%; animation-delay:.7s; background:var(--c-blue);"></span>
+
+    <div class="container position-relative d-flex align-items-center justify-content-center text-center"
+      style="gap:20px;">
+      <!-- PIXEL ROBOT SPRITE -->
+      <svg class="px-robot" viewBox="0 0 18 18" shape-rendering="crispEdges"
         xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2C10.8954 2 10 2.89543 10 4V4.5H14V4C14 2.89543 13.1046 2 12 2Z" fill="#0dcaf0" />
-        <rect x="4" y="8" width="16" height="12" rx="3" fill="white" />
-        <circle cx="8" cy="13" r="2" fill="#2a5298" />
-        <circle cx="16" cy="13" r="2" fill="#2a5298" />
-        <path d="M9 17H15" stroke="#2a5298" stroke-width="1.5" stroke-linecap="round" />
-        <rect x="2" y="10" width="2" height="6" rx="1" fill="#0dcaf0" />
-        <rect x="20" y="10" width="2" height="6" rx="1" fill="#0dcaf0" />
+        <!-- antenna -->
+        <rect x="8" y="0" width="2" height="1" fill="#FF004D" />
+        <rect x="8" y="1" width="2" height="1" fill="#5F574F" />
+        <!-- head outline + face -->
+        <rect x="2" y="2" width="14" height="8" fill="#000" />
+        <rect x="3" y="3" width="12" height="6" fill="#C2C3C7" />
+        <!-- visor screen -->
+        <rect x="4" y="4" width="10" height="4" fill="#0c0c20" />
+        <!-- eyes -->
+        <rect class="eye" x="5" y="5" width="2" height="2" fill="#00E436" />
+        <rect class="eye" x="11" y="5" width="2" height="2" fill="#00E436" />
+        <!-- arms -->
+        <rect x="0" y="11" width="2" height="3" fill="#000" />
+        <rect x="16" y="11" width="2" height="3" fill="#000" />
+        <!-- body outline + body -->
+        <rect x="3" y="10" width="12" height="6" fill="#000" />
+        <rect x="4" y="11" width="10" height="4" fill="#C2C3C7" />
+        <!-- chest light -->
+        <rect x="8" y="12" width="2" height="2" fill="#29ADFF" />
+        <!-- legs -->
+        <rect x="5" y="16" width="2" height="2" fill="#000" />
+        <rect x="11" y="16" width="2" height="2" fill="#000" />
       </svg>
-      <div>
-        <h1 class="fw-bold m-0" style="letter-spacing: 1px;">RPA Control Center</h1>
-        <p class="m-0 opacity-75">Live Monitoring & Historical Logs</p>
+      <div class="text-start">
+        <h1 class="hero-title">RPA CONTROL CENTER</h1>
+        <p class="hero-sub">&#9646; LIVE MONITORING SYSTEM &#9646;</p>
       </div>
     </div>
-    <div class="wave-container">
-      <svg class="wave-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
-        <path class="wave-path"
-          d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z"
-          opacity=".25"></path>
-        <path class="wave-path"
-          d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-23.81V0Z"
-          opacity=".5"></path>
-        <path class="wave-path"
-          d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z">
-        </path>
-      </svg>
-    </div>
+    <div class="hero-ground"></div>
   </div>
 
   <div class="container mt-4 mb-5">
@@ -229,11 +707,131 @@
       <li class="nav-item"><button class="nav-link" id="history-tab" data-bs-toggle="pill"
           data-bs-target="#history-view" type="button"><i class="fa-solid fa-clock-rotate-left me-2"></i>History
           Logs</button></li>
+      <li class="nav-item"><button class="nav-link" id="analytics-tab" data-bs-toggle="pill"
+          data-bs-target="#analytics-view" type="button"><i class="fa-solid fa-chart-pie me-2"></i>Analytics</button>
+      </li>
     </ul>
 
     <div class="tab-content" id="dashboardTabsContent">
 
       <div class="tab-pane fade show active" id="live-view" role="tabpanel">
+
+        <!-- ============ KPI SUMMARY BAR ============ -->
+        <div class="row g-3 mb-4" id="kpi-bar">
+          <div class="col-6 col-md">
+            <div class="kpi-card">
+              <div class="kpi-icon">
+                <svg viewBox="0 0 10 10" shape-rendering="crispEdges">
+                  <g fill="#00E436">
+                    <rect x="1" y="4" width="2" height="2" /><rect x="2" y="5" width="2" height="2" />
+                    <rect x="3" y="6" width="2" height="2" /><rect x="4" y="5" width="2" height="2" />
+                    <rect x="5" y="3" width="2" height="2" /><rect x="6" y="2" width="2" height="2" />
+                    <rect x="7" y="1" width="2" height="2" />
+                  </g>
+                </svg>
+              </div>
+              <div>
+                <div class="kpi-value text-success" id="kpi-success">0</div>
+                <div class="kpi-label">SUCCESS</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md">
+            <div class="kpi-card">
+              <div class="kpi-icon">
+                <svg viewBox="0 0 10 10" shape-rendering="crispEdges">
+                  <g fill="#FF004D">
+                    <rect x="1" y="1" width="2" height="2" /><rect x="3" y="3" width="2" height="2" />
+                    <rect x="4" y="4" width="2" height="2" /><rect x="6" y="6" width="2" height="2" />
+                    <rect x="7" y="7" width="2" height="2" /><rect x="7" y="1" width="2" height="2" />
+                    <rect x="6" y="3" width="2" height="2" /><rect x="2" y="6" width="2" height="2" />
+                    <rect x="1" y="7" width="2" height="2" />
+                  </g>
+                </svg>
+              </div>
+              <div>
+                <div class="kpi-value text-danger" id="kpi-failed">0</div>
+                <div class="kpi-label">FAILED</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md">
+            <div class="kpi-card">
+              <div class="kpi-icon">
+                <svg viewBox="0 0 10 10" shape-rendering="crispEdges" class="spin-svg"
+                  style="animation:spin 1s steps(8) infinite; transform-origin:center;">
+                  <g fill="#29ADFF">
+                    <rect x="4" y="0" width="2" height="2" /><rect x="7" y="1" width="2" height="2" />
+                    <rect x="8" y="4" width="2" height="2" /><rect x="7" y="7" width="2" height="2" />
+                    <rect x="4" y="8" width="2" height="2" /><rect x="1" y="7" width="2" height="2" />
+                    <rect x="0" y="4" width="2" height="2" /><rect x="1" y="1" width="2" height="2" />
+                  </g>
+                </svg>
+              </div>
+              <div>
+                <div class="kpi-value text-info" id="kpi-running">0</div>
+                <div class="kpi-label">RUNNING</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md">
+            <div class="kpi-card">
+              <div class="kpi-icon">
+                <svg viewBox="0 0 10 10" shape-rendering="crispEdges">
+                  <g fill="#FFA300">
+                    <rect x="2" y="1" width="6" height="1" /><rect x="2" y="8" width="6" height="1" />
+                    <rect x="3" y="2" width="4" height="1" /><rect x="4" y="3" width="2" height="1" />
+                    <rect x="4" y="4" width="2" height="2" /><rect x="4" y="6" width="2" height="1" />
+                    <rect x="3" y="7" width="4" height="1" />
+                  </g>
+                </svg>
+              </div>
+              <div>
+                <div class="kpi-value text-warning" id="kpi-stale">0</div>
+                <div class="kpi-label">ค้าง/STALE</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-md">
+            <div class="kpi-card">
+              <div class="kpi-icon">
+                <svg viewBox="0 0 10 10" shape-rendering="crispEdges">
+                  <g fill="#FFEC27">
+                    <rect x="4" y="0" width="2" height="3" /><rect x="0" y="3" width="10" height="2" />
+                    <rect x="2" y="5" width="6" height="2" /><rect x="1" y="7" width="3" height="2" />
+                    <rect x="6" y="7" width="3" height="2" />
+                  </g>
+                </svg>
+              </div>
+              <div>
+                <div class="kpi-value text-warning" id="kpi-rate">—</div>
+                <div class="kpi-label">RATE วันนี้</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ ALERT PANEL (Error & Stale) ============ -->
+        <div class="card alert-panel mb-4">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
+              <h6 class="fw-bold m-0 text-danger mb-2 mb-md-0"><i class="fa-solid fa-bell me-2"></i>รายการที่ต้องดูด่วน (Error & ค้าง)</h6>
+              <div class="d-flex align-items-center">
+                <label class="text-muted small me-2 text-nowrap">ถือว่า "ค้าง" เมื่อเงียบเกิน:</label>
+                <select id="staleSelect" class="form-select form-select-sm" style="width:auto;">
+                  <option value="15">15 นาที</option>
+                  <option value="30" selected>30 นาที</option>
+                  <option value="60">1 ชั่วโมง</option>
+                  <option value="180">3 ชั่วโมง</option>
+                </select>
+              </div>
+            </div>
+            <div id="alert-container">
+              <div class="text-muted small py-1"><i class="fa-solid fa-spinner fa-spin me-2"></i>กำลังตรวจสอบ...</div>
+            </div>
+          </div>
+        </div>
+
         <div class="row align-items-center mb-4 bg-white p-3 rounded shadow-sm mx-0">
           <div class="col-md-6 mb-3 mb-md-0">
             <div class="input-group">
@@ -278,6 +876,37 @@
             </div>
           </div>
 
+          <!-- ============ FILTER BAR ============ -->
+          <div class="row g-2 mb-3 align-items-end bg-light rounded p-2 mx-0">
+            <div class="col-6 col-md-2">
+              <label class="form-label small text-muted mb-1">Status</label>
+              <select id="filterStatus" class="form-select form-select-sm">
+                <option value="">ทั้งหมด</option>
+                <option value="Success">Success</option>
+                <option value="Failed">Failed</option>
+                <option value="Running">Running</option>
+              </select>
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label small text-muted mb-1">ชื่อ Bot</label>
+              <input type="text" id="filterBot" class="form-control form-control-sm" placeholder="ค้นหาชื่อ Bot...">
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label small text-muted mb-1">ตั้งแต่วันที่</label>
+              <input type="date" id="filterFrom" class="form-control form-control-sm">
+            </div>
+            <div class="col-6 col-md-2">
+              <label class="form-label small text-muted mb-1">ถึงวันที่</label>
+              <input type="date" id="filterTo" class="form-control form-control-sm">
+            </div>
+            <div class="col-12 col-md-3 d-flex gap-2">
+              <button id="btnClearFilter" class="btn btn-outline-secondary btn-sm flex-fill"><i
+                  class="fa-solid fa-rotate-left me-1"></i>ล้าง</button>
+              <button id="btnExportCsv" class="btn btn-success btn-sm flex-fill"><i
+                  class="fa-solid fa-file-csv me-1"></i>Export CSV</button>
+            </div>
+          </div>
+
           <div class="table-responsive" style="min-height: 400px;">
             <table class="table table-hover table-compact table-bordered mb-0">
               <thead class="table-dark">
@@ -305,6 +934,29 @@
             </nav>
           </div>
 
+        </div>
+      </div>
+
+      <!-- ============ ANALYTICS VIEW ============ -->
+      <div class="tab-pane fade" id="analytics-view" role="tabpanel">
+        <div class="row g-4">
+          <div class="col-lg-7">
+            <div class="bg-white rounded shadow-sm p-3 h-100">
+              <h5 class="fw-bold text-primary mb-1"><i class="fa-solid fa-chart-column me-2"></i>แนวโน้ม 7 วันล่าสุด
+              </h5>
+              <p class="text-muted small mb-3">จำนวนการรัน Success vs Failed รายวัน</p>
+              <canvas id="trendChart" height="150"></canvas>
+            </div>
+          </div>
+          <div class="col-lg-5">
+            <div class="bg-white rounded shadow-sm p-3 h-100">
+              <h5 class="fw-bold text-danger mb-1"><i class="fa-solid fa-ranking-star me-2"></i>บอทที่พังบ่อย</h5>
+              <p class="text-muted small mb-3">นับจาก Failed ใน 7 วันล่าสุด (Top 10)</p>
+              <div id="top-failing-container">
+                <div class="text-muted small py-2"><i class="fa-solid fa-spinner fa-spin me-2"></i>กำลังคำนวณ...</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -348,6 +1000,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <script>
     // 🚨 อย่าลืมแก้ URL เป็นของโปรเจกต์คุณนะครับ
@@ -366,6 +1019,13 @@
     let currentPage = 1;
     let rowsPerPage = 25;
 
+    // Stale Detection: บอทที่สถานะ Running แต่เงียบเกิน N นาที = น่าจะค้าง/ตาย (ปรับได้บนหน้าจอ)
+    let staleThresholdMin = 30;
+
+    // History Filter + Analytics
+    let histFilter = { status: '', bot: '', from: '', to: '' };
+    let trendChart = null;
+
     document.addEventListener("DOMContentLoaded", () => {
       editModalInstance = new bootstrap.Modal(document.getElementById('editModal'));
     });
@@ -374,7 +1034,126 @@
       if (status === "Running") return { class: "status-Running", icon: "fa-spinner fa-spin", textClass: "text-info" };
       if (status === "Success") return { class: "status-Success", icon: "fa-check-circle", textClass: "text-success" };
       if (status === "Failed") return { class: "status-Failed", icon: "fa-times-circle", textClass: "text-danger" };
+      if (status === "Stale") return { class: "status-Stale", icon: "fa-plug-circle-exclamation", textClass: "text-warning" };
       return { class: "bg-secondary", icon: "fa-circle-question", textClass: "text-secondary" };
+    }
+
+    /* ==============================================
+       HELPERS: เวลา & การตรวจจับบอทค้าง
+       ============================================== */
+    function parseDateTime(s) {
+      if (!s) return null;
+      const d = new Date(String(s).replace(' ', 'T'));
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    // แปลง timestamp เป็นข้อความ "เมื่อ X ที่แล้ว"
+    function timeAgo(s) {
+      const d = parseDateTime(s);
+      if (!d) return s || '-';
+      let diff = (Date.now() - d.getTime()) / 1000;
+      if (diff < 0) diff = 0;
+      if (diff < 60) return 'เมื่อสักครู่';
+      if (diff < 3600) return Math.floor(diff / 60) + ' นาทีที่แล้ว';
+      if (diff < 86400) return Math.floor(diff / 3600) + ' ชม.ที่แล้ว';
+      return Math.floor(diff / 86400) + ' วันที่แล้ว';
+    }
+
+    // รวม status หลายรูปแบบจากแต่ละระบบให้เป็นมาตรฐานเดียว (กันเคส "SUCCESS", "Completed", "error" ฯลฯ)
+    function normalizeStatus(raw) {
+      const s = String(raw || '').trim().toLowerCase();
+      if (['success', 'completed', 'complete', 'done', 'ok', 'passed', 'finish', 'finished'].includes(s)) return 'Success';
+      if (['failed', 'fail', 'error', 'exception', 'crash'].includes(s)) return 'Failed';
+      if (['running', 'start', 'started', 'in progress', 'processing', 'busy', 'pending'].includes(s)) return 'Running';
+      return raw; // ไม่รู้จัก — แสดงตามเดิม
+    }
+
+    // คืนสถานะ "ตามจริง": ถ้า Running แต่เงียบเกิน threshold ให้ถือว่า Stale (ค้าง)
+    function getEffectiveStatus(info) {
+      if (!info) return 'Unknown';
+      const norm = normalizeStatus(info.status);
+      if (norm === 'Failed') return 'Failed';
+      if (norm === 'Running') {
+        const d = parseDateTime(info.status_datetime);
+        if (d && (Date.now() - d.getTime()) > staleThresholdMin * 60000) return 'Stale';
+        return 'Running';
+      }
+      return norm;
+    }
+
+    // จัดลำดับ: Failed → Stale → Running → Success (ดันตัวมีปัญหาขึ้นบนสุดเสมอ)
+    const STATE_ORDER = { Failed: 0, Stale: 1, Running: 2, Success: 3 };
+    function getSortedBots() {
+      if (!latestLiveData) return [];
+      return Object.keys(latestLiveData).map(botName => {
+        const info = latestLiveData[botName];
+        return { botName, info, eff: getEffectiveStatus(info) };
+      }).sort((a, b) => {
+        const oa = STATE_ORDER[a.eff] ?? 9, ob = STATE_ORDER[b.eff] ?? 9;
+        if (oa !== ob) return oa - ob;
+        return (b.info.status_datetime || '').localeCompare(a.info.status_datetime || '');
+      });
+    }
+
+    // อัปเดตการ์ด KPI ด้านบน
+    function renderKPIs(bots) {
+      let s = 0, f = 0, r = 0, st = 0;
+      bots.forEach(({ eff }) => {
+        if (eff === 'Success') s++;
+        else if (eff === 'Failed') f++;
+        else if (eff === 'Running') r++;
+        else if (eff === 'Stale') st++;
+      });
+      document.getElementById('kpi-success').textContent = s;
+      document.getElementById('kpi-failed').textContent = f;
+      document.getElementById('kpi-running').textContent = r;
+      document.getElementById('kpi-stale').textContent = st;
+
+      // Success Rate วันนี้ คำนวณจาก History (เฉพาะ Success/Failed ของวันนี้)
+      const now = new Date();
+      const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+      let okT = 0, failT = 0;
+      historyData.forEach(log => {
+        if ((log.status_datetime || '').startsWith(todayStr)) {
+          const ns = normalizeStatus(log.status);
+          if (ns === 'Success') okT++;
+          else if (ns === 'Failed') failT++;
+        }
+      });
+      const denom = okT + failT;
+      document.getElementById('kpi-rate').textContent = denom ? Math.round(okT / denom * 100) + '%' : '—';
+    }
+
+    // Alert Panel: รวมเฉพาะ Failed + Stale ปักหมุดบนสุด
+    function renderAlertPanel(bots) {
+      const box = document.getElementById('alert-container');
+      const alerts = bots.filter(b => b.eff === 'Failed' || b.eff === 'Stale');
+      if (alerts.length === 0) {
+        box.innerHTML = '<div class="text-success fw-semibold py-1"><i class="fa-solid fa-circle-check me-2"></i>ทุกระบบทำงานปกติ ไม่มีรายการ Error หรือค้าง</div>';
+        return;
+      }
+      let html = '';
+      alerts.forEach(({ botName, info, eff }) => {
+        const isStale = eff === 'Stale';
+        const badge = isStale
+          ? '<span class="badge status-Stale">ค้าง/ไม่ตอบสนอง</span>'
+          : '<span class="badge status-Failed blink">Failed</span>';
+        const detail = isStale
+          ? `ค้างที่ Stage: <b>${info.stage || '-'}</b> — ไม่อัปเดตตั้งแต่ ${timeAgo(info.status_datetime)}`
+          : (info.error_message ? `<i class="fa-solid fa-triangle-exclamation"></i> ${info.error_message}` : `พังที่ Stage: <b>${info.stage || '-'}</b>`);
+        html += `
+                <div class="alert-row ${isStale ? 'stale' : ''} d-flex justify-content-between align-items-center flex-wrap">
+                    <div class="me-2">
+                        <span class="fw-bold"><i class="fa-solid fa-robot me-1 text-secondary"></i>${botName}</span> ${badge}
+                        <div class="small text-muted mt-1">${detail}</div>
+                    </div>
+                    <div class="text-nowrap mt-2 mt-md-0">
+                        <span class="small text-muted me-2" title="${info.status_datetime || ''}"><i class="fa-regular fa-clock"></i> ${timeAgo(info.status_datetime)}</span>
+                        <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="openEditModal('${botName}')"><i class="fa-solid fa-pen" style="font-size:0.7rem;"></i></button>
+                    </div>
+                </div>`;
+      });
+      box.innerHTML = html;
     }
 
     /* ==============================================
@@ -382,35 +1161,42 @@
        ============================================== */
     function renderLiveDashboard() {
       const botContainer = document.getElementById('bot-container');
-      if (!latestLiveData) { botContainer.innerHTML = '<div class="text-center mt-5"><p class="text-muted">ยังไม่มีข้อมูล</p></div>'; return; }
+      let bots = getSortedBots();
+
+      // อัปเดต KPI + Alert Panel ทุกครั้ง (ใช้ข้อมูลทั้งหมด ไม่กรองตามคำค้นหา)
+      renderKPIs(bots);
+      renderAlertPanel(bots);
+
+      if (bots.length === 0) { botContainer.innerHTML = '<div class="text-center mt-5"><p class="text-muted">ยังไม่มีข้อมูล</p></div>'; return; }
+
+      // กรองตามคำค้นหา (เฉพาะรายการการ์ด/ตารางด้านล่าง)
+      const q = searchQuery.toLowerCase();
+      bots = bots.filter(b => b.botName.toLowerCase().includes(q));
+      if (bots.length === 0) { botContainer.innerHTML = '<div class="text-center mt-5"><p class="text-muted">ไม่พบชื่อ Bot ที่ค้นหา</p></div>'; return; }
 
       let html = '';
-      const botNames = Object.keys(latestLiveData).filter(name => name.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      if (botNames.length === 0) { botContainer.innerHTML = '<div class="text-center mt-5"><p class="text-muted">ไม่พบชื่อ Bot ที่ค้นหา</p></div>'; return; }
-
       if (currentLiveView === 'card') {
         html += '<div class="row">';
-        botNames.forEach(botName => {
-          const info = latestLiveData[botName];
-          const st = getStatusStyle(info.status);
-          const timeDisplay = info.status_datetime || info.last_update || '-';
+        bots.forEach(({ botName, info, eff }) => {
+          const st = getStatusStyle(eff);
+          const outline = eff === 'Failed' ? 'is-failed' : (eff === 'Stale' ? 'is-stale' : '');
           const errorHtml = info.error_message ? `<div class="alert alert-danger mt-3 p-1 px-2 text-sm" style="font-size:0.75rem;"><i class="fa-solid fa-triangle-exclamation"></i> ${info.error_message}</div>` : '';
+          const staleNote = eff === 'Stale' ? `<div class="small text-warning mt-2"><i class="fa-solid fa-plug-circle-exclamation"></i> ไม่อัปเดตเกิน ${staleThresholdMin} นาที — อาจค้าง</div>` : '';
           html += `
                     <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-                        <div class="card card-bot h-100">
+                        <div class="card card-bot h-100 ${outline}">
                             <div class="position-absolute top-0 end-0 p-2 action-btns z-1">
                                 <button class="btn btn-sm btn-light text-primary border py-0 px-2" onclick="openEditModal('${botName}')"><i class="fa-solid fa-pen" style="font-size:0.8rem;"></i></button>
                                 <button class="btn btn-sm btn-light text-danger border py-0 px-2 ms-1" onclick="deleteBot('${botName}')"><i class="fa-solid fa-trash" style="font-size:0.8rem;"></i></button>
                             </div>
                             <div class="card-body pt-4 pb-2">
                                 <h6 class="fw-bold mb-3 text-truncate"><i class="fa-solid fa-robot text-secondary me-1"></i> ${botName}</h6>
-                                <span class="badge ${st.class} status-badge mb-3"><i class="fa-solid ${st.icon}"></i> ${info.status}</span>
+                                <span class="badge ${st.class} status-badge mb-3"><i class="fa-solid ${st.icon}"></i> ${eff}</span>
                                 <p class="card-text m-0 text-muted" style="font-size:0.75rem;">Stage:</p>
                                 <p class="card-text fw-semibold text-primary" style="font-size:0.9rem;">${info.stage}</p>
-                                ${errorHtml}
+                                ${errorHtml}${staleNote}
                             </div>
-                            <div class="card-footer bg-transparent text-muted border-0 pt-0" style="font-size: 0.7rem;"><i class="fa-regular fa-clock"></i> ${timeDisplay}</div>
+                            <div class="card-footer bg-transparent text-muted border-0 pt-0" style="font-size: 0.7rem;" title="${info.status_datetime || ''}"><i class="fa-regular fa-clock"></i> ${timeAgo(info.status_datetime)}</div>
                         </div>
                     </div>`;
         });
@@ -421,16 +1207,16 @@
                 <table class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
                     <thead class="table-light"><tr><th>Bot Name</th><th>Status</th><th>Current Stage</th><th>Date / Time</th><th class="text-center">Action</th></tr></thead>
                     <tbody>`;
-        botNames.forEach(botName => {
-          const info = latestLiveData[botName];
-          const st = getStatusStyle(info.status);
-          const timeDisplay = info.status_datetime || info.last_update || '-';
-          const stageDisplay = info.status === "Failed" && info.error_message ? `<span>${info.stage}</span> <br><small class="text-danger"><i class="fa-solid fa-triangle-exclamation"></i> ${info.error_message}</small>` : info.stage;
+        bots.forEach(({ botName, info, eff }) => {
+          const st = getStatusStyle(eff);
+          const stageDisplay = (eff === "Failed" && info.error_message)
+            ? `<span>${info.stage}</span> <br><small class="text-danger"><i class="fa-solid fa-triangle-exclamation"></i> ${info.error_message}</small>`
+            : (eff === 'Stale' ? `${info.stage} <br><small class="text-warning"><i class="fa-solid fa-plug-circle-exclamation"></i> ไม่อัปเดตเกิน ${staleThresholdMin} นาที</small>` : info.stage);
           html += `
                     <tr>
                         <td class="fw-bold"><i class="fa-solid fa-robot text-secondary me-2"></i>${botName}</td>
-                        <td><span class="badge ${st.class} table-status-badge"><i class="fa-solid ${st.icon}"></i> ${info.status}</span></td>
-                        <td>${stageDisplay}</td><td class="text-muted" style="font-size:0.85rem;">${timeDisplay}</td>
+                        <td><span class="badge ${st.class} table-status-badge"><i class="fa-solid ${st.icon}"></i> ${eff}</span></td>
+                        <td>${stageDisplay}</td><td class="text-muted" style="font-size:0.85rem;" title="${info.status_datetime || ''}">${timeAgo(info.status_datetime)}</td>
                         <td class="text-center action-btns">
                             <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="openEditModal('${botName}')"><i class="fa-solid fa-pen" style="font-size:0.7rem;"></i></button>
                             <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteBot('${botName}')"><i class="fa-solid fa-trash" style="font-size:0.7rem;"></i></button>
@@ -439,46 +1225,225 @@
         });
         html += `</tbody></table></div>`;
       }
-      document.getElementById('bot-container').innerHTML = html;
+      botContainer.innerHTML = html;
     }
 
     db.ref('rpa_live_status').on('value', (snapshot) => { latestLiveData = snapshot.val(); renderLiveDashboard(); });
     document.getElementById('searchInput').addEventListener('input', (e) => { searchQuery = e.target.value; renderLiveDashboard(); });
     document.querySelectorAll('.view-selector').forEach(radio => { radio.addEventListener('change', (e) => { currentLiveView = e.target.value; renderLiveDashboard(); }); });
+    document.getElementById('staleSelect').addEventListener('change', (e) => { staleThresholdMin = parseInt(e.target.value); renderLiveDashboard(); });
+
+    // รีเฟรชทุก 30 วิ เพื่ออัปเดตเวลา "เมื่อ X ที่แล้ว" และตรวจจับบอทค้างแบบ real-time
+    // (แม้ไม่มีข้อมูลใหม่เข้ามา เวลาที่ผ่านไปก็ทำให้บอทกลายเป็น Stale ได้)
+    setInterval(renderLiveDashboard, 30000);
+
+    /* ==============================================
+       HISTORY FILTER + EXPORT CSV
+       ============================================== */
+    function getFilteredHistory() {
+      return historyData.filter(log => {
+        if (histFilter.status && normalizeStatus(log.status) !== histFilter.status) return false;
+        if (histFilter.bot && !String(log.bot_name || '').toLowerCase().includes(histFilter.bot)) return false;
+        const dpart = String(log.status_datetime || '').slice(0, 10);
+        if (histFilter.from && dpart < histFilter.from) return false;
+        if (histFilter.to && dpart > histFilter.to) return false;
+        return true;
+      });
+    }
+
+    function applyHistoryFilter() {
+      histFilter.status = document.getElementById('filterStatus').value;
+      histFilter.bot = document.getElementById('filterBot').value.trim().toLowerCase();
+      histFilter.from = document.getElementById('filterFrom').value;
+      histFilter.to = document.getElementById('filterTo').value;
+      currentPage = 1;
+      renderHistoryTable();
+    }
+
+    ['filterStatus', 'filterBot', 'filterFrom', 'filterTo'].forEach(id => {
+      document.getElementById(id).addEventListener('input', applyHistoryFilter);
+    });
+    document.getElementById('btnClearFilter').addEventListener('click', () => {
+      histFilter = { status: '', bot: '', from: '', to: '' };
+      document.getElementById('filterStatus').value = '';
+      document.getElementById('filterBot').value = '';
+      document.getElementById('filterFrom').value = '';
+      document.getElementById('filterTo').value = '';
+      currentPage = 1;
+      renderHistoryTable();
+    });
+
+    document.getElementById('btnExportCsv').addEventListener('click', () => {
+      const rows = getFilteredHistory();
+      if (!rows.length) { alert('ไม่มีข้อมูลให้ Export'); return; }
+      const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+      const header = ['Date/Time', 'Bot Name', 'Status', 'Stage', 'Error Message'];
+      const lines = [header.map(esc).join(',')];
+      rows.forEach(r => lines.push([r.status_datetime, r.bot_name, normalizeStatus(r.status), r.stage, r.error_message].map(esc).join(',')));
+      const csv = '﻿' + lines.join('\r\n'); // BOM กัน Excel อ่านภาษาไทยเพี้ยน
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const now = new Date();
+      const p = n => String(n).padStart(2, '0');
+      const stamp = `${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}_${p(now.getHours())}${p(now.getMinutes())}`;
+      const a = document.createElement('a');
+      a.href = url; a.download = `rpa_history_${stamp}.csv`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    /* ==============================================
+       ANALYTICS: กราฟแนวโน้ม 7 วัน + Top Failing Bots
+       ============================================== */
+    function lastNDays(n) {
+      const days = [];
+      const t = new Date();
+      for (let i = n - 1; i >= 0; i--) {
+        const d = new Date(t.getFullYear(), t.getMonth(), t.getDate() - i);
+        days.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'));
+      }
+      return days;
+    }
+
+    function renderTrendChart() {
+      const canvas = document.getElementById('trendChart');
+      if (!canvas || typeof Chart === 'undefined') return;
+      const days = lastNDays(7);
+      const succ = {}, fail = {};
+      days.forEach(k => { succ[k] = 0; fail[k] = 0; });
+      historyData.forEach(log => {
+        const k = String(log.status_datetime || '').slice(0, 10);
+        if (k in succ) {
+          const ns = normalizeStatus(log.status);
+          if (ns === 'Success') succ[k]++;
+          else if (ns === 'Failed') fail[k]++;
+        }
+      });
+      const labels = days.map(k => k.slice(5));
+      const dataSucc = days.map(k => succ[k]);
+      const dataFail = days.map(k => fail[k]);
+      if (trendChart) {
+        trendChart.data.labels = labels;
+        trendChart.data.datasets[0].data = dataSucc;
+        trendChart.data.datasets[1].data = dataFail;
+        trendChart.update();
+        return;
+      }
+      // ธีม pixel: ฟอนต์ Press Start 2P, สีนีออน, แท่งเหลี่ยม
+      if (Chart.defaults) {
+        Chart.defaults.color = '#FFF1E8';
+        Chart.defaults.font.family = "'Press Start 2P', 'Kanit', sans-serif";
+        Chart.defaults.font.size = 7;
+      }
+      const pixelGrid = { color: 'rgba(131,118,156,.25)', lineWidth: 1 };
+      trendChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            { label: 'SUCCESS', data: dataSucc, backgroundColor: '#00E436', borderColor: '#000', borderWidth: 2, borderRadius: 0 },
+            { label: 'FAILED', data: dataFail, backgroundColor: '#FF004D', borderColor: '#000', borderWidth: 2, borderRadius: 0 }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          scales: {
+            x: { grid: pixelGrid, ticks: { font: { size: 7 } } },
+            y: { beginAtZero: true, grid: pixelGrid, ticks: { precision: 0, font: { size: 7 } } }
+          },
+          plugins: { legend: { position: 'top', labels: { boxWidth: 12, padding: 14 } } }
+        }
+      });
+    }
+
+    function renderTopFailing() {
+      const box = document.getElementById('top-failing-container');
+      if (!box) return;
+      const sinceKey = lastNDays(7)[0];
+      const agg = {};
+      historyData.forEach(log => {
+        const k = String(log.status_datetime || '').slice(0, 10);
+        if (k >= sinceKey && normalizeStatus(log.status) === 'Failed') {
+          const name = log.bot_name || '(unknown)';
+          if (!agg[name]) agg[name] = { count: 0, last: '' };
+          agg[name].count++;
+          if ((log.status_datetime || '') > agg[name].last) agg[name].last = log.status_datetime;
+        }
+      });
+      const arr = Object.entries(agg).map(([name, v]) => ({ name, ...v })).sort((a, b) => b.count - a.count).slice(0, 10);
+      if (!arr.length) {
+        box.innerHTML = '<div class="text-success py-2"><i class="fa-solid fa-circle-check me-2"></i>ไม่มีบอทที่พังใน 7 วันล่าสุด</div>';
+        return;
+      }
+      const max = arr[0].count;
+      let html = '<table class="table table-sm table-borderless mb-0">';
+      arr.forEach((b, i) => {
+        const pct = Math.round(b.count / max * 100);
+        html += `
+                <tr>
+                    <td style="width:22px;" class="text-muted fw-bold align-middle">${i + 1}</td>
+                    <td>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-semibold text-truncate" style="max-width:170px;" title="${b.name}"><i class="fa-solid fa-robot text-secondary me-1"></i>${b.name}</span>
+                            <span class="badge bg-danger ms-2">${b.count} ครั้ง</span>
+                        </div>
+                        <div class="progress mt-1" style="height:5px;"><div class="progress-bar bg-danger" style="width:${pct}%"></div></div>
+                        <div class="small text-muted mt-1">พังล่าสุด: ${timeAgo(b.last)}</div>
+                    </td>
+                </tr>`;
+      });
+      html += '</table>';
+      box.innerHTML = html;
+    }
+
+    function renderAnalytics() {
+      renderTrendChart();
+      renderTopFailing();
+    }
+
+    // เมื่อสลับมาแท็บ Analytics ให้ resize กราฟ (กันกรณีสร้างตอน canvas ยังถูกซ่อน)
+    document.getElementById('analytics-tab').addEventListener('shown.bs.tab', () => {
+      renderAnalytics();
+      if (trendChart) trendChart.resize();
+    });
 
     /* ==============================================
        2. HISTORY LOGS SYSTEM (With Pagination)
        ============================================== */
     function renderHistoryTable() {
       const tbody = document.getElementById('history-container');
-      if (historyData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">ยังไม่มีประวัติการรัน</td></tr>';
+      const data = getFilteredHistory();
+      if (data.length === 0) {
+        const msg = historyData.length === 0 ? 'ยังไม่มีประวัติการรัน' : 'ไม่พบข้อมูลตามเงื่อนไขที่กรอง';
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">${msg}</td></tr>`;
         document.getElementById('page-info').innerHTML = '';
         document.getElementById('pagination-container').innerHTML = '';
         return;
       }
 
       // คำนวณขอบเขตข้อมูลที่จะโชว์ในหน้านี้ (Slicing Array)
-      const totalItems = historyData.length;
+      const totalItems = data.length;
       const totalPages = Math.ceil(totalItems / rowsPerPage);
 
       // กันเหนียวกรณีลบหน้าสุดท้ายแล้วหน้าปัจจุบันเกิน
       if (currentPage > totalPages) currentPage = totalPages;
+      if (currentPage < 1) currentPage = 1;
 
       const startIndex = (currentPage - 1) * rowsPerPage;
       const endIndex = Math.min(startIndex + rowsPerPage, totalItems);
-      const paginatedData = historyData.slice(startIndex, endIndex);
+      const paginatedData = data.slice(startIndex, endIndex);
 
       // วาดตารางเฉพาะข้อมูลในหน้าปัจจุบัน
       let html = '';
       paginatedData.forEach(log => {
-        const st = getStatusStyle(log.status);
+        const st = getStatusStyle(normalizeStatus(log.status));
         const errorText = log.error_message ? `<span class="text-danger"><i class="fa-solid fa-triangle-exclamation"></i> ${log.error_message}</span>` : `<span class="text-success">-</span>`;
         html += `
                 <tr>
                     <td class="text-muted">${log.status_datetime || '-'}</td>
                     <td class="fw-bold text-dark"><i class="fa-solid fa-robot text-secondary me-1" style="font-size:0.7rem;"></i> ${log.bot_name}</td>
-                    <td><span class="${st.textClass} fw-bold" style="font-size:0.8rem;"><i class="fa-solid ${st.icon}"></i> ${log.status}</span></td>
+                    <td><span class="${st.textClass} fw-bold" style="font-size:0.8rem;"><i class="fa-solid ${st.icon}"></i> ${normalizeStatus(log.status)}</span></td>
                     <td class="text-primary">${log.stage}</td>
                     <td style="font-size:0.8rem;">${errorText}</td>
                 </tr>`;
@@ -544,6 +1509,8 @@
           return timeB.localeCompare(timeA);
         });
         renderHistoryTable();
+        renderLiveDashboard(); // รีเฟรช KPI "Success Rate วันนี้" ที่อิงข้อมูล History
+        renderAnalytics();     // รีเฟรชกราฟแนวโน้ม + Top failing bots
       }
     });
 
