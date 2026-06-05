@@ -40,9 +40,11 @@ Com7-RPA-Log/
 ├── requirements.txt     # fastapi, uvicorn, pydantic, firebase-admin
 ├── Dockerfile           # build image สำหรับ Cloud Run
 ├── testapi.py           # สคริปต์ทดสอบยิง API
-└── web-rpa/             # Dashboard (Firebase Hosting)
+└── web-rpa/             # Firebase project (Hosting + Functions)
     ├── firebase.json
-    └── public/index.html  # หน้า Dashboard (ธีม Pixel Game UI)
+    ├── public/index.html  # หน้า Dashboard (ธีม Pixel Game UI)
+    └── functions/         # Cloud Functions
+        └── index.js       # งานอัตโนมัติ: เคลียร์การ์ด Success ทุกเที่ยงคืน
 ```
 
 ---
@@ -54,7 +56,33 @@ Com7-RPA-Log/
 - **Stale Detection** — บอทที่ `Running` แต่เงียบเกินเวลาที่กำหนด (ปรับได้บนหน้าจอ) จะถูกจับว่า "ค้าง/ไม่ตอบสนอง"
 - **History Logs** — ตารางประวัติ + ฟิลเตอร์ (Status / ชื่อ Bot / ช่วงวันที่) + Export CSV + Pagination
 - **Analytics** — กราฟแนวโน้ม Success vs Failed 7 วันล่าสุด + อันดับบอทที่พังบ่อย
-- **ธีม Pixel Game UI** — โทน retro arcade (PICO-8), pixel sprites, scanline CRT
+- **ธีม Pixel Game UI** — โทน retro arcade (PICO-8), pixel sprites, scanline CRT, สลับ Dark/Light ได้
+
+---
+
+## ⏰ งานอัตโนมัติ (Scheduled Jobs)
+
+รันบน **Cloud Functions** (Gen 2) ผ่าน Cloud Scheduler — ทำงานบน server ของ Google เอง ไม่ต้องเปิดเครื่องค้างไว้
+
+### `clearSuccessLiveStatus` — เคลียร์การ์ด Success ทุกเที่ยงคืน
+
+| | |
+|---|---|
+| **ทำงานเมื่อ** | ทุกวัน **00:00 เวลาไทย** (cron `0 0 * * *`, timezone `Asia/Bangkok`) |
+| **ทำอะไร** | ลบ bot ที่สถานะล่าสุด = Success ออกจาก `rpa_live_status` (การ์ดบนหน้า Live) เพื่อเริ่มวันใหม่แบบสะอาด เหลือเฉพาะตัวที่กำลังรัน/มีปัญหา |
+| **ไม่แตะ** | `rpa_history_logs` — ประวัติยังเก็บครบทุก record |
+| **นับว่า Success** | `Success / Completed / Complete / Done / OK / Passed / Finish / Finished` (ตรงกับ normalize บน Dashboard) |
+| **Region** | `asia-southeast1` (เดียวกับ Realtime DB) |
+| **โค้ด** | [`web-rpa/functions/index.js`](web-rpa/functions/index.js) |
+
+**Deploy / แก้ไข schedule:**
+```bash
+cd web-rpa
+firebase deploy --only functions
+```
+> ปรับเวลา/เงื่อนไขได้ที่ `web-rpa/functions/index.js` (ตัวแปร `schedule`, `timeZone`, `SUCCESS_STATUSES`) แล้ว deploy ใหม่
+
+**ทดสอบ/ดู log:** Firebase Console → Functions → `clearSuccessLiveStatus` (ดู Logs / กด Test ได้)
 
 ---
 
@@ -196,6 +224,7 @@ firebase serve --only hosting
 |------|---------|------|
 | **API** | Cloud Run | `git push origin main` → Cloud Build build Dockerfile + deploy อัตโนมัติ |
 | **Dashboard** | Firebase Hosting | `cd web-rpa && firebase deploy --only hosting` |
+| **Scheduled Jobs** | Cloud Functions | `cd web-rpa && firebase deploy --only functions` (ต้องเป็นแพลน Blaze) |
 
 ---
 
@@ -204,3 +233,4 @@ firebase serve --only hosting
 - **Backend:** FastAPI + Pydantic (Python 3.10) บน Google Cloud Run
 - **Database:** Firebase Realtime Database (asia-southeast1)
 - **Frontend:** HTML + Bootstrap 5 + Chart.js + Firebase JS SDK (Firebase Hosting)
+- **Scheduled Jobs:** Cloud Functions (Node.js 20, Gen 2) + Cloud Scheduler
