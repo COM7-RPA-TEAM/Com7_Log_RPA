@@ -1,0 +1,87 @@
+name: Auto Deploy (self-hosted)
+
+# Runs on the RPA bot machine (self-hosted runner) every time someone
+# pushes to main. It updates the code in the production bot folder and
+# refreshes the Python dependencies. It does NOT run the bot itself.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {} # allows manual "Run workflow" from the Actions tab
+
+concurrency:
+  group: deploy-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, windows, rpa]
+    env:
+      # Base folder on the bot machine where every repo lives.
+      DEPLOY_BASE: C:\Users\TAN_REMOTE_PC\mis-project
+      # Tracked-but-secret files that must survive a deploy (never overwritten).
+      PROTECTED_FILES: config.ini
+
+    steps:
+      - name: Context
+        shell: powershell
+        run: |
+          Write-Host "Repo   : ${{ github.repository }}"
+          Write-Host "Branch : ${{ github.ref_name }}"
+          Write-Host "Commit : ${{ github.sha }}"
+          Write-Host "Pusher : ${{ github.actor }}"
+
+      - name: Deploy latest code to bot folder
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $repo   = "${{ github.event.repository.name }}"
+          $branch = "${{ github.ref_name }}"
+          $dir    = Join-Path $env:DEPLOY_BASE $repo
+
+          if (-not (Test-Path (Join-Path $dir ".git"))) {
+            Write-Host "No checkout at $dir - cloning fresh."
+            git clone "https://github.com/${{ github.repository }}.git" $dir
+          }
+          Set-Location $dir
+
+          # Back up tracked-but-secret files so a hard reset can't clobber them.
+          $protected = "$env:PROTECTED_FILES".Split(",") | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+          foreach ($f in $protected) {
+            if (Test-Path $f) { Copy-Item $f "$f.deploybak" -Force; Write-Host "Backed up $f" }
+          }
+
+          git fetch origin --prune
+          git reset --hard "origin/$branch"
+
+          # Restore the machine-local secret files.
+          foreach ($f in $protected) {
+            if (Test-Path "$f.deploybak") { Move-Item "$f.deploybak" $f -Force; Write-Host "Restored local $f" }
+          }
+
+          Write-Host ("Deployed commit: " + (git rev-parse --short HEAD))
+
+      - name: Install / update dependencies
+        shell: powershell
+        run: |
+          $ErrorActionPreference = "Stop"
+          $repo = "${{ github.event.repository.name }}"
+          $dir  = Join-Path $env:DEPLOY_BASE $repo
+          Set-Location $dir
+
+          if (-not (Test-Path ".venv")) {
+            Write-Host "Creating virtual environment (.venv)"
+            python -m venv .venv
+          }
+          $py = Join-Path $dir ".venv\Scripts\python.exe"
+          & $py -m pip install --upgrade pip
+          if (Test-Path "requirements.txt") {
+            & $py -m pip install -r requirements.txt
+            Write-Host "Dependencies installed from requirements.txt"
+          } else {
+            Write-Host "No requirements.txt - skipping dependency install"
+          }
+
+      - name: Summary
+        shell: powershell
+        run: Write-Host "Deploy complete for ${{ github.event.repository.name }} @ ${{ github.sha }}"
