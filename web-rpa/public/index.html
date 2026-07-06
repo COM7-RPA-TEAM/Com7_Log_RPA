@@ -4,1070 +4,853 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RPA Enterprise Dashboard</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>COM7 RPA Monitor</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link
-    href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Kanit:wght@400;600&display=swap"
-    rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
     /* ============================================================
-       PIXEL GAME UI THEME  (PICO-8 inspired palette)
+       DESIGN TOKENS — professional palette (light / dark)
+       สลับธีมด้วย attribute data-theme บน <html>
        ============================================================ */
-    :root {
-      --c-bg: #0c0c20;
-      --c-panel: #191933;
-      --c-panel2: #23234d;
-      --c-line: #3a3a6e;
-      --c-white: #FFF1E8;
-      --c-grey: #9a9ac7;
-      --c-red: #FF004D;
-      --c-orange: #FFA300;
-      --c-yellow: #FFEC27;
-      --c-green: #00E436;
-      --c-blue: #29ADFF;
-      --c-purple: #7E2553;
-      --c-lav: #83769C;
-      --c-pink: #FF77A8;
-      --font-pixel: 'Press Start 2P', 'Kanit', sans-serif;
-      --font-term: 'VT323', 'Kanit', monospace;
+    :root,
+    :root[data-theme="light"] {
+      --page: #f9f9f7;
+      --surface: #fcfcfb;
+      --surface-2: #f3f2ee;
+      --ink: #0b0b0b;
+      --ink-2: #52514e;
+      --muted: #898781;
+      --grid: #e1e0d9;
+      --line: rgba(11, 11, 11, .10);
+      --shadow: 0 1px 2px rgba(11, 11, 11, .05), 0 4px 16px rgba(11, 11, 11, .05);
+
+      /* status — ใช้คู่ icon+label เสมอ ไม่ใช้สีเดี่ยวๆ สื่อความหมาย */
+      --running: #2a78d6;
+      --good: #0ca30c;
+      --good-text: #006300;
+      --critical: #d03b3b;
+      --critical-text: #b02a2a;
+      --warning: #fab219;
+      --warning-text: #8a6206;
     }
 
-    /* ===== LIGHT THEME (สลับด้วยปุ่มมุมขวาบน) — override เฉพาะตัวแปรสี ===== */
-    body.theme-light {
-      --c-bg: #e4e7f1;
-      --c-panel: #ffffff;
-      --c-panel2: #eef1fa;
-      --c-line: #c2c6da;
-      --c-white: #1b1c33;
-      /* ^ ตัวแปรนี้คือ "สีตัวอักษรหลัก" -> ทำให้เข้มบนพื้นสว่าง */
-      --c-grey: #5b5e7a;
-      --c-lav: #7b6fa6;
+    :root[data-theme="dark"] {
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --surface-2: #232322;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --line: rgba(255, 255, 255, .10);
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 4px 20px rgba(0, 0, 0, .35);
+
+      --running: #3987e5;
+      --good: #0ca30c;
+      --good-text: #2fbf2f;
+      --critical: #d03b3b;
+      --critical-text: #e66767;
+      --warning: #fab219;
+      --warning-text: #fab219;
     }
 
-    /* accent ที่ใช้เป็น "สีตัวอักษร" ปรับให้เข้มขึ้นเพื่ออ่านออกบนพื้นขาว
-       (ส่วนที่ใช้เป็นพื้นหลัง badge/ปุ่ม ยังใช้สีสดเหมือนเดิม) */
-    body.theme-light .text-success {
-      color: #0a8f30 !important;
-    }
+    * { box-sizing: border-box; }
 
-    body.theme-light .text-primary,
-    body.theme-light .text-info {
-      color: #1172c4 !important;
-    }
-
-    body.theme-light .text-warning {
-      color: #b36d00 !important;
-    }
-
-    body.theme-light .text-danger {
-      color: #e10046 !important;
-    }
-
-    body.theme-light .text-secondary {
-      color: #6d6390 !important;
-    }
-
-    /* กล่องไอคอน KPI ให้เป็นจอเข้มเสมอ เพื่อให้ sprite สีนีออนเด่นในทั้งสองธีม */
-    body.theme-light .kpi-icon {
-      background: #15162b !important;
-    }
-
-    /* scanline เบาลงบนธีมสว่าง ไม่ให้ดูหม่น */
-    body.theme-light::after {
-      background: repeating-linear-gradient(0deg, rgba(0, 0, 0, .05) 0px, rgba(0, 0, 0, .05) 1px, transparent 2px, transparent 4px);
-    }
-
-    * {
-      image-rendering: pixelated;
-    }
-
-    html,
-    body {
-      overflow-x: hidden;
-    }
+    html, body { overflow-x: hidden; }
 
     body {
-      background-color: var(--c-bg);
-      background-image:
-        linear-gradient(rgba(58, 58, 110, .25) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(58, 58, 110, .25) 1px, transparent 1px);
-      background-size: 32px 32px;
-      font-family: var(--font-term);
-      font-size: 1.15rem;
-      color: var(--c-white);
-      letter-spacing: .5px;
+      background: var(--page);
+      color: var(--ink);
+      font-family: 'Inter', 'Kanit', system-ui, 'Segoe UI', sans-serif;
+      font-size: .925rem;
+      -webkit-font-smoothing: antialiased;
     }
 
-    /* CRT scanline overlay */
-    body::after {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 9999;
-      background: repeating-linear-gradient(0deg, rgba(0, 0, 0, .16) 0px, rgba(0, 0, 0, .16) 1px, transparent 2px, transparent 4px);
-      animation: flicker 4s steps(2) infinite;
+    /* ============ TOPBAR ============ */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: color-mix(in srgb, var(--surface) 88%, transparent);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line);
     }
 
-    @keyframes flicker {
-
-      0%,
-      100% {
-        opacity: .85;
-      }
-
-      50% {
-        opacity: .7;
-      }
+    .topbar-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: .65rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
     }
 
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6 {
-      font-family: var(--font-pixel);
-      letter-spacing: 1px;
-      line-height: 1.5;
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      font-weight: 800;
+      font-size: 1.02rem;
+      letter-spacing: .2px;
+      white-space: nowrap;
     }
 
-    /* หัวข้อ: ใช้ฟอนต์ terminal + Kanit (เข้ากันดีเมื่อปนไทย-อังกฤษบรรทัดเดียว)
-       Press Start 2P สงวนไว้เฉพาะข้อความอังกฤษ/ตัวเลขล้วน */
-    h5 {
-      font-family: var(--font-term);
-      font-weight: 600 !important;
-      font-size: 1.4rem;
-      letter-spacing: .5px;
+    .brand .logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--running);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-size: .95rem;
     }
 
-    h6 {
-      font-family: var(--font-term);
-      font-weight: 600 !important;
-      font-size: 1.2rem;
-      letter-spacing: .5px;
+    .brand small {
+      display: block;
+      font-weight: 500;
+      color: var(--muted);
+      font-size: .68rem;
+      letter-spacing: .4px;
     }
 
-    /* ---- surfaces: turn every Bootstrap surface into a pixel panel ---- */
-    .card,
-    .kpi-card,
-    .alert-panel,
-    .bg-white,
-    .bg-light {
-      background: var(--c-panel) !important;
-      color: var(--c-white);
-      border: 3px solid #000 !important;
-      border-radius: 0 !important;
-      box-shadow: 0 0 0 3px var(--c-lav), 6px 6px 0 0 rgba(0, 0, 0, .55) !important;
+    /* nav pills */
+    .nav-pills-custom {
+      display: flex;
+      gap: .25rem;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      padding: .25rem;
+      border-radius: 10px;
     }
 
-    .card-body {
+    .nav-pills-custom button {
+      border: 0;
       background: transparent;
+      color: var(--ink-2);
+      font-weight: 600;
+      font-size: .85rem;
+      padding: .42rem .95rem;
+      border-radius: 8px;
+      transition: background .15s, color .15s;
+      white-space: nowrap;
     }
 
-    .rounded,
-    .rounded-3,
-    .shadow-sm {
-      border-radius: 0 !important;
+    .nav-pills-custom button:hover { color: var(--ink); }
+
+    .nav-pills-custom button.active {
+      background: var(--surface);
+      color: var(--ink);
+      box-shadow: var(--shadow);
     }
 
-    /* ---- text color overrides for dark bg ---- */
-    .text-muted {
-      color: var(--c-grey) !important;
-    }
-
-    .text-dark {
-      color: var(--c-white) !important;
-    }
-
-    .text-secondary {
-      color: var(--c-lav) !important;
-    }
-
-    .text-primary {
-      color: var(--c-blue) !important;
-    }
-
-    .text-success {
-      color: var(--c-green) !important;
-    }
-
-    .text-danger {
-      color: var(--c-red) !important;
-    }
-
-    .text-warning {
-      color: var(--c-orange) !important;
-    }
-
-    .text-info {
-      color: var(--c-blue) !important;
-    }
-
-    /* ============ HERO ============ */
-    .hero-section {
-      position: relative;
-      background: linear-gradient(180deg, #1a0b3b 0%, #2a1a5e 55%, #0c0c20 100%);
-      border-bottom: 4px solid #000;
-      padding: 2.2rem 0 2.8rem 0;
-      overflow: hidden;
-    }
-
-    .hero-title {
-      font-family: var(--font-pixel);
-      font-size: clamp(1rem, 3.6vw, 1.9rem);
-      color: var(--c-yellow);
-      text-shadow: 3px 3px 0 var(--c-red), 6px 6px 0 #000;
-      margin: 0;
-    }
-
-    .hero-sub {
-      font-family: var(--font-pixel);
-      font-size: .58rem;
-      color: var(--c-green);
-      margin: .7rem 0 0 0;
-      letter-spacing: 2px;
-      animation: blink 1.2s steps(2) infinite;
-    }
-
-    .px-robot {
-      width: 86px;
-      height: 86px;
-      animation: bob .7s steps(2) infinite;
-    }
-
-    @keyframes bob {
-
-      0%,
-      100% {
-        transform: translateY(0);
-      }
-
-      50% {
-        transform: translateY(-8px);
-      }
-    }
-
-    .px-robot .eye {
-      animation: eyeblink 3s steps(1) infinite;
-    }
-
-    @keyframes eyeblink {
-
-      0%,
-      92%,
-      100% {
-        opacity: 1;
-      }
-
-      95% {
-        opacity: 0;
-      }
-    }
-
-    .star {
-      position: absolute;
-      width: 6px;
-      height: 6px;
-      background: #FFF1E8;
-      animation: twinkle 1.4s steps(2) infinite;
-    }
-
-    @keyframes twinkle {
-
-      0%,
-      100% {
-        opacity: 1;
-      }
-
-      50% {
-        opacity: 0;
-      }
-    }
-
-    .hero-ground {
-      position: absolute;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 16px;
-      background: repeating-linear-gradient(90deg, var(--c-purple) 0 16px, #5a1a3d 16px 32px);
-      border-top: 4px solid #000;
-    }
-
-    /* ============ TABS ============ */
-    .nav-pills {
-      gap: 10px;
-    }
-
-    .nav-pills .nav-link {
-      font-family: var(--font-pixel);
-      font-size: .62rem;
-      color: var(--c-white);
-      background: var(--c-panel2);
-      border: 3px solid #000;
-      border-radius: 0;
-      box-shadow: 0 4px 0 0 #000;
-      padding: 12px 16px;
-    }
-
-    .nav-pills .nav-link.active {
-      background: var(--c-green);
-      color: #06210f;
-      box-shadow: 0 0 0 3px var(--c-yellow), 0 4px 0 0 #000;
-    }
-
-    .nav-pills .nav-link:active {
-      transform: translateY(3px);
-      box-shadow: none;
-    }
-
-    /* ============ KPI ============ */
-    .kpi-card {
-      padding: .9rem 1rem;
+    .topbar-right {
+      margin-left: auto;
       display: flex;
       align-items: center;
-      gap: .8rem;
-      height: 100%;
+      gap: .5rem;
+      flex-wrap: wrap;
     }
 
-    .kpi-icon {
-      width: 54px;
-      height: 54px;
-      flex: 0 0 auto;
+    /* connection dot */
+    .conn {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: .75rem;
+      font-weight: 600;
+      color: var(--muted);
+      padding: .3rem .65rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface);
+    }
+
+    .conn .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+
+    .conn.online .dot { background: var(--good); box-shadow: 0 0 0 3px color-mix(in srgb, var(--good) 25%, transparent); }
+    .conn.online { color: var(--good-text); border-color: color-mix(in srgb, var(--good) 35%, transparent); }
+    .conn.offline .dot { background: var(--critical); }
+    .conn.offline { color: var(--critical-text); }
+
+    .btn-ghost {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink-2);
+      font-weight: 600;
+      font-size: .8rem;
+      padding: .38rem .75rem;
+      border-radius: 8px;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+
+    .btn-ghost:hover { color: var(--ink); border-color: var(--muted); }
+    .btn-ghost.on { color: var(--running); border-color: color-mix(in srgb, var(--running) 45%, transparent); background: color-mix(in srgb, var(--running) 10%, var(--surface)); }
+
+    /* ============ LAYOUT ============ */
+    .wrap {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1.4rem 1.25rem 3rem;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel-pad { padding: 1.1rem 1.25rem; }
+
+    .section-title {
+      font-size: .78rem;
+      font-weight: 700;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: .75rem;
+    }
+
+    /* ============ KPI TILES ============ */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: .9rem;
+      margin-bottom: 1.1rem;
+    }
+
+    @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 640px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      padding: .95rem 1.1rem;
+      cursor: pointer;
+      transition: transform .12s, border-color .12s;
+      position: relative;
+      user-select: none;
+    }
+
+    .kpi:hover { transform: translateY(-2px); }
+
+    .kpi .k-label {
       display: flex;
       align-items: center;
-      justify-content: center;
-      background: var(--c-panel2) !important;
-      border: 3px solid #000;
+      gap: .45rem;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--ink-2);
     }
 
-    .kpi-icon svg {
-      width: 38px;
-      height: 38px;
+    .kpi .k-value {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-top: .15rem;
     }
 
-    .kpi-value {
-      font-family: var(--font-pixel);
-      font-size: 1.5rem;
-      line-height: 1;
+    .kpi .k-sub { font-size: .72rem; color: var(--muted); }
+
+    .kpi .k-ico {
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      font-size: .75rem;
+      color: #fff;
     }
 
-    .kpi-label {
-      font-family: var(--font-term);
-      font-size: 1rem;
-      color: var(--c-grey);
-      margin-top: 3px;
-      letter-spacing: .5px;
-    }
+    .kpi.f-running .k-ico { background: var(--running); }
+    .kpi.f-success .k-ico { background: var(--good); }
+    .kpi.f-failed .k-ico { background: var(--critical); }
+    .kpi.f-stale .k-ico { background: var(--warning); color: #4a3600; }
+    .kpi.f-rate .k-ico { background: var(--ink-2); }
 
-    /* ============ BADGES / STATUS ============ */
-    .badge,
-    .status-badge,
-    .table-status-badge {
-      font-family: var(--font-pixel);
-      font-size: .55rem !important;
-      border-radius: 0 !important;
-      border: 2px solid #000;
-      padding: 6px 8px !important;
-      letter-spacing: 1px;
-    }
+    .kpi.active-filter { border-color: var(--running); box-shadow: 0 0 0 3px color-mix(in srgb, var(--running) 20%, transparent); }
 
-    .status-Running {
-      background: var(--c-blue) !important;
-      color: #04223a !important;
-    }
+    .kpi.pulse-failed { border-color: color-mix(in srgb, var(--critical) 55%, transparent); }
 
-    .status-Success {
-      background: var(--c-green) !important;
-      color: #06210f !important;
-    }
+    /* ============ ALERT PANEL ============ */
+    .alert-strip { margin-bottom: 1.1rem; }
 
-    .status-Failed {
-      background: var(--c-red) !important;
-      color: #fff !important;
-    }
-
-    .status-Stale {
-      background: var(--c-orange) !important;
-      color: #3a2400 !important;
-    }
-
-    .bg-danger {
-      background: var(--c-red) !important;
-      color: #fff !important;
-    }
-
-    .bg-secondary {
-      background: var(--c-lav) !important;
-    }
-
-    .bg-primary {
-      background: var(--c-blue) !important;
-    }
-
-    /* ============ BOT CARDS ============ */
-    .card-bot {
-      position: relative;
-      transition: transform .1s steps(2);
-    }
-
-    .card-bot:hover {
-      transform: translate(-2px, -2px);
-      box-shadow: 0 0 0 3px var(--c-yellow), 8px 8px 0 0 rgba(0, 0, 0, .6) !important;
-    }
-
-    .card-bot.is-failed {
-      box-shadow: 0 0 0 3px var(--c-red), 6px 6px 0 0 rgba(0, 0, 0, .55) !important;
-    }
-
-    .card-bot.is-stale {
-      box-shadow: 0 0 0 3px var(--c-orange), 6px 6px 0 0 rgba(0, 0, 0, .55) !important;
-    }
-
-    .card-footer {
-      background: transparent !important;
-      border: none !important;
-    }
-
-    /* ชื่อบอทในการ์ด: ใช้ฟอนต์ terminal ที่บางกว่า Press Start 2P (อ่านง่ายขึ้น) */
-    .card-bot h6 {
-      font-family: var(--font-term);
-      font-weight: 400 !important;
-      font-size: 1.25rem;
-      letter-spacing: .5px;
-    }
-
-    /* alert rows */
     .alert-row {
-      border: 2px solid #000;
-      border-left: 8px solid var(--c-red);
-      background: var(--c-panel2);
-      border-radius: 0;
-      padding: .7rem .9rem;
-      margin-bottom: .55rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: .75rem;
+      flex-wrap: wrap;
+      padding: .7rem .95rem;
+      border-radius: 10px;
+      border: 1px solid color-mix(in srgb, var(--critical) 30%, transparent);
+      background: color-mix(in srgb, var(--critical) 7%, var(--surface));
+      margin-bottom: .5rem;
     }
 
     .alert-row.stale {
-      border-left-color: var(--c-orange);
+      border-color: color-mix(in srgb, var(--warning) 40%, transparent);
+      background: color-mix(in srgb, var(--warning) 8%, var(--surface));
     }
 
-    /* ชื่อบอทใน Alert: น้ำหนักปกติ (เลี่ยง faux-bold ของ VT323 ที่ดูหนาเกิน) */
-    .alert-row .fw-bold {
-      font-weight: 400 !important;
-      font-size: 1.1rem;
+    .alert-ok {
+      display: flex;
+      align-items: center;
+      gap: .55rem;
+      padding: .7rem .95rem;
+      border-radius: 10px;
+      border: 1px solid color-mix(in srgb, var(--good) 30%, transparent);
+      background: color-mix(in srgb, var(--good) 6%, var(--surface));
+      color: var(--good-text);
+      font-weight: 600;
+      font-size: .85rem;
     }
 
-    .alert-danger {
-      background: #2a0a16 !important;
-      border: 2px solid var(--c-red) !important;
-      color: var(--c-red) !important;
-      border-radius: 0 !important;
+    /* ============ STATUS CHIP ============ */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .3px;
+      padding: .28rem .6rem;
+      border-radius: 999px;
+      line-height: 1;
+      white-space: nowrap;
     }
 
-    /* ============ FORMS ============ */
-    .form-control,
-    .form-select,
-    .input-group-text {
-      background: var(--c-panel2) !important;
-      color: var(--c-white) !important;
-      border: 3px solid #000 !important;
-      border-radius: 0 !important;
-      font-family: var(--font-term);
-      font-size: 1.05rem;
-      box-shadow: none !important;
+    .chip.s-Running { color: var(--running); background: color-mix(in srgb, var(--running) 12%, transparent); }
+    .chip.s-Success { color: var(--good-text); background: color-mix(in srgb, var(--good) 12%, transparent); }
+    .chip.s-Failed { color: var(--critical-text); background: color-mix(in srgb, var(--critical) 12%, transparent); }
+    .chip.s-Stale { color: var(--warning-text); background: color-mix(in srgb, var(--warning) 14%, transparent); }
+    .chip.s-Unknown { color: var(--muted); background: var(--surface-2); }
+
+    /* ============ BOT CARDS ============ */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
     }
 
-    .form-control::placeholder {
-      color: var(--c-grey);
+    .toolbar .search {
+      position: relative;
+      flex: 1;
+      min-width: 200px;
+      max-width: 340px;
     }
 
-    .form-label {
-      font-family: var(--font-term);
-      font-size: 1rem;
-      letter-spacing: .5px;
+    .toolbar .search i {
+      position: absolute;
+      left: .8rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: .8rem;
     }
 
-    /* ============ BUTTONS ============ */
-    .btn {
-      font-family: var(--font-pixel);
-      font-size: .55rem !important;
-      border-radius: 0 !important;
-      border: 3px solid #000 !important;
-      box-shadow: 0 4px 0 0 #000;
-      letter-spacing: 1px;
+    .form-control, .form-select {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      color: var(--ink);
+      font-size: .85rem;
+      border-radius: 8px;
     }
 
-    .btn:active {
-      transform: translateY(3px);
-      box-shadow: none;
+    .form-control:focus, .form-select:focus {
+      background: var(--surface);
+      color: var(--ink);
+      border-color: var(--running);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--running) 18%, transparent);
     }
 
-    .btn-primary,
-    .btn-outline-primary {
-      background: var(--c-blue) !important;
-      color: #04223a !important;
+    .form-control::placeholder { color: var(--muted); }
+
+    .toolbar .search input { padding-left: 2.2rem; }
+
+    .bot-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+      gap: .9rem;
     }
 
-    .btn-success {
-      background: var(--c-green) !important;
-      color: #06210f !important;
+    .bot-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--muted);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: .9rem 1rem .75rem;
+      position: relative;
+      transition: transform .12s;
     }
 
-    .btn-secondary,
-    .btn-outline-secondary {
-      background: var(--c-lav) !important;
-      color: #100c1f !important;
+    .bot-card:hover { transform: translateY(-2px); }
+    .bot-card.b-Running { border-left-color: var(--running); }
+    .bot-card.b-Success { border-left-color: var(--good); }
+    .bot-card.b-Failed { border-left-color: var(--critical); }
+    .bot-card.b-Stale { border-left-color: var(--warning); }
+
+    .bot-card .b-name {
+      font-weight: 700;
+      font-size: .92rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding-right: 3.4rem;
     }
 
-    .btn-danger,
-    .btn-outline-danger {
-      background: var(--c-red) !important;
-      color: #fff !important;
+    .bot-card .b-actions {
+      position: absolute;
+      top: .65rem;
+      right: .65rem;
+      opacity: 0;
+      transition: opacity .15s;
+      display: flex;
+      gap: .25rem;
     }
 
-    .btn-light {
-      background: var(--c-panel2) !important;
-      color: var(--c-white) !important;
+    .bot-card:hover .b-actions { opacity: 1; }
+
+    .icon-btn {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink-2);
+      width: 26px;
+      height: 26px;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      font-size: .68rem;
+      transition: all .12s;
     }
 
-    .btn-close {
-      filter: invert(1);
+    .icon-btn:hover { color: var(--running); border-color: var(--running); }
+    .icon-btn.danger:hover { color: var(--critical); border-color: var(--critical); }
+
+    .bot-card .b-stage {
+      margin-top: .55rem;
+      font-size: .8rem;
+      color: var(--ink-2);
+      min-height: 1.2em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    .btn-check:checked+.btn {
-      background: var(--c-yellow) !important;
-      color: #2a2400 !important;
-      box-shadow: 0 0 0 3px var(--c-green), 0 4px 0 0 #000;
+    .bot-card .b-stage b { color: var(--ink); font-weight: 600; }
+
+    .bot-card .b-err {
+      margin-top: .5rem;
+      font-size: .74rem;
+      color: var(--critical-text);
+      background: color-mix(in srgb, var(--critical) 8%, transparent);
+      border-radius: 7px;
+      padding: .4rem .55rem;
+      word-break: break-word;
+      max-height: 4.4em;
+      overflow: auto;
     }
 
-    /* ============ TABLES ============ */
-    .table {
-      color: var(--c-white);
-      border-color: #000;
+    .bot-card .b-stalenote {
+      margin-top: .5rem;
+      font-size: .74rem;
+      color: var(--warning-text);
     }
 
-    .table-dark,
-    .table-light {
-      --bs-table-bg: var(--c-panel2);
-      background: var(--c-panel2) !important;
-      color: var(--c-white) !important;
+    .bot-card .b-time {
+      margin-top: .6rem;
+      padding-top: .5rem;
+      border-top: 1px dashed var(--grid);
+      font-size: .72rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
     }
 
-    .table>:not(caption)>*>* {
-      background: transparent;
-      color: var(--c-white);
-      border-color: #000;
+    /* list view table + history table */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 12px;
+      border: 1px solid var(--line);
     }
 
-    .table thead th {
-      font-family: var(--font-pixel);
-      font-size: .55rem;
-      background: var(--c-purple) !important;
-      color: #FFF1E8 !important;
-      border: 2px solid #000 !important;
-      letter-spacing: 1px;
-      line-height: 1.6;
+    table.tbl {
+      width: 100%;
+      margin: 0;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: var(--surface);
+      font-size: .85rem;
     }
 
-    .table-hover tbody tr:hover>* {
-      background: rgba(131, 118, 156, .18) !important;
+    table.tbl thead th {
+      position: sticky;
+      top: 0;
+      background: var(--surface-2);
+      color: var(--muted);
+      font-size: .72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      padding: .65rem .9rem;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
     }
 
-    .table-compact td,
-    .table-compact th {
-      padding: .55rem .6rem;
-      font-size: 1rem;
+    table.tbl tbody td {
+      padding: .62rem .9rem;
+      border-bottom: 1px solid var(--grid);
+      color: var(--ink-2);
       vertical-align: middle;
     }
 
-    /* ============ PAGINATION ============ */
-    .pagination {
-      cursor: pointer;
-      gap: 4px;
-      margin-bottom: 0;
+    table.tbl tbody tr:last-child td { border-bottom: 0; }
+    table.tbl tbody tr:hover td { background: color-mix(in srgb, var(--running) 4%, transparent); }
+    table.tbl .t-name { font-weight: 600; color: var(--ink); white-space: nowrap; }
+    table.tbl .t-time { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+    /* ============ HISTORY ============ */
+    .filter-row {
+      display: flex;
+      gap: .6rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      margin-bottom: 1rem;
     }
 
-    .page-link {
-      font-family: var(--font-pixel);
-      font-size: .55rem;
-      background: var(--c-panel2);
-      color: var(--c-white);
-      border: 2px solid #000;
-      border-radius: 0 !important;
+    .filter-row .f-item { min-width: 140px; }
+    .filter-row label {
+      font-size: .7rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: .25rem;
+      display: block;
     }
 
-    .page-item.active .page-link {
-      background: var(--c-green);
-      color: #06210f;
-      border-color: #000;
+    .pagination-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .75rem;
+      flex-wrap: wrap;
+      margin-top: .9rem;
+      font-size: .8rem;
+      color: var(--muted);
     }
 
-    .page-item.disabled .page-link {
-      background: #101028;
-      color: #55557a;
+    .pager { display: flex; gap: .25rem; }
+
+    .pager button {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink-2);
+      min-width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      font-size: .8rem;
+      font-weight: 600;
+      padding: 0 .5rem;
     }
 
-    /* ============ PROGRESS ============ */
-    .progress {
-      background: #101028 !important;
-      border: 2px solid #000;
-      border-radius: 0 !important;
-      height: 8px !important;
+    .pager button:hover:not(:disabled) { border-color: var(--running); color: var(--running); }
+    .pager button.cur { background: var(--running); border-color: var(--running); color: #fff; }
+    .pager button:disabled { opacity: .4; }
+
+    /* ============ ANALYTICS ============ */
+    .ana-grid {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: .9rem;
     }
 
-    .progress-bar {
-      background: var(--c-red) !important;
+    @media (max-width: 900px) { .ana-grid { grid-template-columns: 1fr; } }
+
+    .mini-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: .9rem;
+      margin-bottom: .9rem;
     }
 
-    /* ============ MODAL ============ */
-    .modal-content {
-      background: var(--c-panel) !important;
-      color: var(--c-white);
-      border: 4px solid #000 !important;
-      border-radius: 0 !important;
-      box-shadow: 0 0 0 4px var(--c-lav), 10px 10px 0 0 rgba(0, 0, 0, .6);
+    @media (max-width: 640px) { .mini-stats { grid-template-columns: 1fr; } }
+
+    .rank-row { padding: .55rem 0; border-bottom: 1px dashed var(--grid); }
+    .rank-row:last-child { border-bottom: 0; }
+
+    .rank-bar {
+      height: 5px;
+      border-radius: 3px;
+      background: var(--surface-2);
+      margin-top: .35rem;
+      overflow: hidden;
     }
 
-    .modal-header {
-      background: var(--c-purple) !important;
-      color: #FFF1E8;
-      border-bottom: 3px solid #000 !important;
+    .rank-bar > div { height: 100%; border-radius: 3px; background: var(--critical); }
+
+    /* ============ MISC ============ */
+    .empty {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
     }
 
-    .modal-header .modal-title {
-      font-size: 1.25rem;
+    .empty i { font-size: 2rem; margin-bottom: .6rem; display: block; opacity: .5; }
+
+    .view-seg {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
     }
 
-    .modal-footer {
-      border-top: 3px solid #000 !important;
-      background: var(--c-panel2) !important;
+    .view-seg button {
+      border: 0;
+      background: var(--surface);
+      color: var(--muted);
+      padding: .4rem .7rem;
+      font-size: .8rem;
     }
 
-    /* spinner → chunky pixel spin */
-    .spinner-border {
-      border-radius: 0 !important;
-      animation: spin .8s steps(8) infinite !important;
-    }
+    .view-seg button.active { background: var(--running); color: #fff; }
 
-    @keyframes spin {
-      100% {
-        transform: rotate(360deg);
-      }
-    }
+    .last-update { font-size: .72rem; color: var(--muted); margin-left: auto; }
 
-    /* blink + interactions */
-    .blink {
-      animation: blink .8s steps(2) infinite;
-    }
+    section[hidden] { display: none !important; }
 
-    @keyframes blink {
+    /* modal — สืบทอดโทนจากตัวแปรธีม */
+    .modal-content { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; }
+    .modal-header, .modal-footer { border-color: var(--grid); }
+    .form-label { font-size: .8rem; font-weight: 600; color: var(--ink-2); }
 
-      0%,
-      100% {
-        opacity: 1;
-      }
-
-      50% {
-        opacity: .25;
-      }
-    }
-
-    .action-btns {
-      opacity: .55;
-      transition: .2s;
-    }
-
-    .card-bot:hover .action-btns,
-    tr:hover .action-btns {
-      opacity: 1;
-    }
-
-    /* pixel scrollbar */
-    ::-webkit-scrollbar {
-      width: 14px;
-      height: 14px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: #101028;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: var(--c-lav);
-      border: 3px solid #000;
-    }
-
-    /* ===== ปุ่มสลับธีม (Dark/Light) ===== */
-    .theme-toggle {
-      position: fixed;
-      top: 12px;
-      right: 14px;
-      z-index: 10000;
-      font-family: var(--font-pixel);
-      font-size: .55rem;
-      background: var(--c-panel2);
-      color: var(--c-white);
-      border: 3px solid #000;
-      box-shadow: 0 4px 0 0 #000;
-      padding: 9px 12px;
-      cursor: pointer;
-      letter-spacing: 1px;
-    }
-
-    .theme-toggle:active {
-      transform: translateY(3px);
-      box-shadow: none;
-    }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-thumb { background: var(--grid); border-radius: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
   </style>
 </head>
 
 <body>
+  <!-- ================= TOPBAR ================= -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="logo"><i class="fa-solid fa-robot"></i></div>
+        <div>
+          COM7 RPA Monitor
+          <small>Realtime bot status · COM7-RPA-TEAM</small>
+        </div>
+      </div>
 
-  <button id="themeToggle" class="theme-toggle" title="สลับธีม Dark / Light"><i class="fa-solid fa-sun"></i> <span id="themeLabel">LIGHT</span></button>
+      <nav class="nav-pills-custom" id="mainTabs">
+        <button data-tab="live" class="active"><i class="fa-solid fa-bolt me-1"></i> Live</button>
+        <button data-tab="history"><i class="fa-solid fa-clock-rotate-left me-1"></i> History</button>
+        <button data-tab="analytics"><i class="fa-solid fa-chart-column me-1"></i> Analytics</button>
+      </nav>
 
-  <div class="hero-section">
-    <!-- twinkling pixel stars -->
-    <span class="star" style="top:18px; left:12%;"></span>
-    <span class="star" style="top:44px; left:26%; animation-delay:.3s;"></span>
-    <span class="star" style="top:22px; right:16%; animation-delay:.6s; background:var(--c-yellow);"></span>
-    <span class="star" style="top:56px; right:30%; animation-delay:.9s; background:var(--c-green);"></span>
-    <span class="star" style="top:14px; left:58%; animation-delay:.2s;"></span>
-    <span class="star" style="top:62px; left:44%; animation-delay:.7s; background:var(--c-blue);"></span>
-
-    <div class="container position-relative d-flex align-items-center justify-content-center text-center"
-      style="gap:20px;">
-      <!-- PIXEL ROBOT SPRITE -->
-      <svg class="px-robot" viewBox="0 0 18 18" shape-rendering="crispEdges"
-        xmlns="http://www.w3.org/2000/svg">
-        <!-- antenna -->
-        <rect x="8" y="0" width="2" height="1" fill="#FF004D" />
-        <rect x="8" y="1" width="2" height="1" fill="#5F574F" />
-        <!-- head outline + face -->
-        <rect x="2" y="2" width="14" height="8" fill="#000" />
-        <rect x="3" y="3" width="12" height="6" fill="#C2C3C7" />
-        <!-- visor screen -->
-        <rect x="4" y="4" width="10" height="4" fill="#0c0c20" />
-        <!-- eyes -->
-        <rect class="eye" x="5" y="5" width="2" height="2" fill="#00E436" />
-        <rect class="eye" x="11" y="5" width="2" height="2" fill="#00E436" />
-        <!-- arms -->
-        <rect x="0" y="11" width="2" height="3" fill="#000" />
-        <rect x="16" y="11" width="2" height="3" fill="#000" />
-        <!-- body outline + body -->
-        <rect x="3" y="10" width="12" height="6" fill="#000" />
-        <rect x="4" y="11" width="10" height="4" fill="#C2C3C7" />
-        <!-- chest light -->
-        <rect x="8" y="12" width="2" height="2" fill="#29ADFF" />
-        <!-- legs -->
-        <rect x="5" y="16" width="2" height="2" fill="#000" />
-        <rect x="11" y="16" width="2" height="2" fill="#000" />
-      </svg>
-      <div class="text-start">
-        <h1 class="hero-title">RPA CONTROL CENTER</h1>
-        <p class="hero-sub">&#9646; LIVE MONITORING SYSTEM &#9646;</p>
+      <div class="topbar-right">
+        <span class="conn" id="connBadge"><span class="dot"></span><span id="connText">connecting…</span></span>
+        <button class="btn-ghost" id="notifyToggle" title="แจ้งเตือนเมื่อมีบอท Failed ใหม่"><i class="fa-regular fa-bell"></i> <span>Alert: OFF</span></button>
+        <a class="btn-ghost" href="tv.html" title="โหมดจอ TV / Wallboard"><i class="fa-solid fa-tv"></i> TV Mode</a>
+        <button class="btn-ghost" id="themeToggle"><i class="fa-solid fa-sun"></i></button>
       </div>
     </div>
-    <div class="hero-ground"></div>
-  </div>
+  </header>
 
-  <div class="container mt-4 mb-5">
-    <ul class="nav nav-pills mb-4 justify-content-center" id="dashboardTabs" role="tablist">
-      <li class="nav-item"><button class="nav-link active" id="live-tab" data-bs-toggle="pill"
-          data-bs-target="#live-view" type="button"><i class="fa-solid fa-satellite-dish me-2"></i>Live
-          Dashboard</button></li>
-      <li class="nav-item"><button class="nav-link" id="history-tab" data-bs-toggle="pill"
-          data-bs-target="#history-view" type="button"><i class="fa-solid fa-clock-rotate-left me-2"></i>History
-          Logs</button></li>
-      <li class="nav-item"><button class="nav-link" id="analytics-tab" data-bs-toggle="pill"
-          data-bs-target="#analytics-view" type="button"><i class="fa-solid fa-chart-pie me-2"></i>Analytics</button>
-      </li>
-    </ul>
-
-    <div class="tab-content" id="dashboardTabsContent">
-
-      <div class="tab-pane fade show active" id="live-view" role="tabpanel">
-
-        <!-- ============ KPI SUMMARY BAR ============ -->
-        <div class="row g-3 mb-4" id="kpi-bar">
-          <div class="col-6 col-md">
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <svg viewBox="0 0 10 10" shape-rendering="crispEdges">
-                  <g fill="#00E436">
-                    <rect x="1" y="4" width="2" height="2" /><rect x="2" y="5" width="2" height="2" />
-                    <rect x="3" y="6" width="2" height="2" /><rect x="4" y="5" width="2" height="2" />
-                    <rect x="5" y="3" width="2" height="2" /><rect x="6" y="2" width="2" height="2" />
-                    <rect x="7" y="1" width="2" height="2" />
-                  </g>
-                </svg>
-              </div>
-              <div>
-                <div class="kpi-value text-success" id="kpi-success">0</div>
-                <div class="kpi-label">SUCCESS</div>
-              </div>
-            </div>
-          </div>
-          <div class="col-6 col-md">
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <svg viewBox="0 0 10 10" shape-rendering="crispEdges">
-                  <g fill="#FF004D">
-                    <rect x="1" y="1" width="2" height="2" /><rect x="3" y="3" width="2" height="2" />
-                    <rect x="4" y="4" width="2" height="2" /><rect x="6" y="6" width="2" height="2" />
-                    <rect x="7" y="7" width="2" height="2" /><rect x="7" y="1" width="2" height="2" />
-                    <rect x="6" y="3" width="2" height="2" /><rect x="2" y="6" width="2" height="2" />
-                    <rect x="1" y="7" width="2" height="2" />
-                  </g>
-                </svg>
-              </div>
-              <div>
-                <div class="kpi-value text-danger" id="kpi-failed">0</div>
-                <div class="kpi-label">FAILED</div>
-              </div>
-            </div>
-          </div>
-          <div class="col-6 col-md">
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <svg viewBox="0 0 10 10" shape-rendering="crispEdges" class="spin-svg"
-                  style="animation:spin 1s steps(8) infinite; transform-origin:center;">
-                  <g fill="#29ADFF">
-                    <rect x="4" y="0" width="2" height="2" /><rect x="7" y="1" width="2" height="2" />
-                    <rect x="8" y="4" width="2" height="2" /><rect x="7" y="7" width="2" height="2" />
-                    <rect x="4" y="8" width="2" height="2" /><rect x="1" y="7" width="2" height="2" />
-                    <rect x="0" y="4" width="2" height="2" /><rect x="1" y="1" width="2" height="2" />
-                  </g>
-                </svg>
-              </div>
-              <div>
-                <div class="kpi-value text-info" id="kpi-running">0</div>
-                <div class="kpi-label">RUNNING</div>
-              </div>
-            </div>
-          </div>
-          <div class="col-6 col-md">
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <svg viewBox="0 0 10 10" shape-rendering="crispEdges">
-                  <g fill="#FFA300">
-                    <rect x="2" y="1" width="6" height="1" /><rect x="2" y="8" width="6" height="1" />
-                    <rect x="3" y="2" width="4" height="1" /><rect x="4" y="3" width="2" height="1" />
-                    <rect x="4" y="4" width="2" height="2" /><rect x="4" y="6" width="2" height="1" />
-                    <rect x="3" y="7" width="4" height="1" />
-                  </g>
-                </svg>
-              </div>
-              <div>
-                <div class="kpi-value text-warning" id="kpi-stale">0</div>
-                <div class="kpi-label">ค้าง/STALE</div>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-md">
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <svg viewBox="0 0 10 10" shape-rendering="crispEdges">
-                  <g fill="#FFEC27">
-                    <rect x="4" y="0" width="2" height="3" /><rect x="0" y="3" width="10" height="2" />
-                    <rect x="2" y="5" width="6" height="2" /><rect x="1" y="7" width="3" height="2" />
-                    <rect x="6" y="7" width="3" height="2" />
-                  </g>
-                </svg>
-              </div>
-              <div>
-                <div class="kpi-value text-warning" id="kpi-rate">—</div>
-                <div class="kpi-label">RATE วันนี้</div>
-              </div>
-            </div>
-          </div>
+  <main class="wrap">
+    <!-- ================= LIVE ================= -->
+    <section id="tab-live">
+      <div class="kpi-grid" id="kpiGrid">
+        <div class="kpi f-running" data-filter="Running" title="คลิกเพื่อกรองเฉพาะ Running">
+          <div class="k-label"><span class="k-ico"><i class="fa-solid fa-spinner"></i></span> Running</div>
+          <div class="k-value" id="kpi-running">–</div>
+          <div class="k-sub">กำลังทำงาน</div>
         </div>
-
-        <!-- ============ ALERT PANEL (Error & Stale) ============ -->
-        <div class="card alert-panel mb-4">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
-              <h6 class="fw-bold m-0 text-danger mb-2 mb-md-0"><i class="fa-solid fa-bell me-2"></i>รายการที่ต้องดูด่วน (Error & ค้าง)</h6>
-              <div class="d-flex align-items-center">
-                <label class="text-muted small me-2 text-nowrap">ถือว่า "ค้าง" เมื่อเงียบเกิน:</label>
-                <select id="staleSelect" class="form-select form-select-sm" style="width:auto;">
-                  <option value="15">15 นาที</option>
-                  <option value="30" selected>30 นาที</option>
-                  <option value="60">1 ชั่วโมง</option>
-                  <option value="180">3 ชั่วโมง</option>
-                </select>
-              </div>
-            </div>
-            <div id="alert-container">
-              <div class="text-muted small py-1"><i class="fa-solid fa-spinner fa-spin me-2"></i>กำลังตรวจสอบ...</div>
-            </div>
-          </div>
+        <div class="kpi f-success" data-filter="Success" title="คลิกเพื่อกรองเฉพาะ Success">
+          <div class="k-label"><span class="k-ico"><i class="fa-solid fa-check"></i></span> Success</div>
+          <div class="k-value" id="kpi-success">–</div>
+          <div class="k-sub">สำเร็จ (การ์ดวันนี้)</div>
         </div>
-
-        <div class="row align-items-center mb-4 bg-white p-3 rounded shadow-sm mx-0">
-          <div class="col-md-6 mb-3 mb-md-0">
-            <div class="input-group">
-              <span class="input-group-text bg-light border-end-0"><i
-                  class="fa-solid fa-magnifying-glass text-muted"></i></span>
-              <input type="text" id="searchInput" class="form-control border-start-0"
-                placeholder="ค้นหาชื่อ Bot (Search Bot Name)...">
-            </div>
-          </div>
-          <div class="col-md-6 text-md-end">
-            <div class="btn-group" role="group">
-              <input type="radio" class="btn-check view-selector" name="viewType" id="view-card" value="card" checked>
-              <label class="btn btn-outline-secondary btn-sm" for="view-card"><i class="fa-solid fa-border-all"></i>
-                Card</label>
-              <input type="radio" class="btn-check view-selector" name="viewType" id="view-list" value="list">
-              <label class="btn btn-outline-secondary btn-sm" for="view-list"><i class="fa-solid fa-list"></i>
-                List</label>
-            </div>
-          </div>
+        <div class="kpi f-failed" data-filter="Failed" title="คลิกเพื่อกรองเฉพาะ Failed">
+          <div class="k-label"><span class="k-ico"><i class="fa-solid fa-xmark"></i></span> Failed</div>
+          <div class="k-value" id="kpi-failed">–</div>
+          <div class="k-sub">ล้มเหลว — ต้องดู</div>
         </div>
-        <div id="bot-container">
-          <div class="text-center mt-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted">กำลังดึงข้อมูล Live...</p>
-          </div>
+        <div class="kpi f-stale" data-filter="Stale" title="คลิกเพื่อกรองเฉพาะบอทค้าง">
+          <div class="k-label"><span class="k-ico"><i class="fa-solid fa-plug-circle-exclamation"></i></span> Stale</div>
+          <div class="k-value" id="kpi-stale">–</div>
+          <div class="k-sub">ค้าง / ไม่ตอบสนอง</div>
+        </div>
+        <div class="kpi f-rate" title="คำนวณจาก history เฉพาะวันนี้ (Success ÷ (Success+Failed))">
+          <div class="k-label"><span class="k-ico"><i class="fa-solid fa-percent"></i></span> Success Rate</div>
+          <div class="k-value" id="kpi-rate">–</div>
+          <div class="k-sub">ของวันนี้</div>
         </div>
       </div>
 
-      <div class="tab-pane fade" id="history-view" role="tabpanel">
-        <div class="bg-white rounded shadow-sm p-3">
-          <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
-            <h5 class="fw-bold m-0 text-primary mb-2 mb-md-0"><i class="fa-solid fa-database me-2"></i>ประวัติการรัน
-              (Latest 1,000 records)</h5>
-            <div class="d-flex align-items-center">
-              <label class="text-muted small me-2 text-nowrap">แสดงหน้าละ:</label>
-              <select id="pageSizeSelect" class="form-select form-select-sm" style="width: auto;">
-                <option value="10">10</option>
-                <option value="25" selected>25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
-            </div>
-          </div>
+      <div class="alert-strip" id="alert-container"></div>
 
-          <!-- ============ FILTER BAR ============ -->
-          <div class="row g-2 mb-3 align-items-end bg-light rounded p-2 mx-0">
-            <div class="col-6 col-md-2">
-              <label class="form-label small text-muted mb-1">Status</label>
-              <select id="filterStatus" class="form-select form-select-sm">
-                <option value="">ทั้งหมด</option>
-                <option value="Success">Success</option>
-                <option value="Failed">Failed</option>
-                <option value="Running">Running</option>
-              </select>
-            </div>
-            <div class="col-6 col-md-3">
-              <label class="form-label small text-muted mb-1">ชื่อ Bot</label>
-              <input type="text" id="filterBot" class="form-control form-control-sm" placeholder="ค้นหาชื่อ Bot...">
-            </div>
-            <div class="col-6 col-md-2">
-              <label class="form-label small text-muted mb-1">ตั้งแต่วันที่</label>
-              <input type="date" id="filterFrom" class="form-control form-control-sm">
-            </div>
-            <div class="col-6 col-md-2">
-              <label class="form-label small text-muted mb-1">ถึงวันที่</label>
-              <input type="date" id="filterTo" class="form-control form-control-sm">
-            </div>
-            <div class="col-12 col-md-3 d-flex gap-2">
-              <button id="btnClearFilter" class="btn btn-outline-secondary btn-sm flex-fill"><i
-                  class="fa-solid fa-rotate-left me-1"></i>ล้าง</button>
-              <button id="btnExportCsv" class="btn btn-success btn-sm flex-fill"><i
-                  class="fa-solid fa-file-csv me-1"></i>Export CSV</button>
-            </div>
-          </div>
-
-          <div class="table-responsive" style="min-height: 400px;">
-            <table class="table table-hover table-compact table-bordered mb-0">
-              <thead class="table-dark">
-                <tr>
-                  <th width="18%">Date / Time</th>
-                  <th width="20%">Bot Name</th>
-                  <th width="12%">Status</th>
-                  <th width="25%">Stage</th>
-                  <th width="25%">Error Message</th>
-                </tr>
-              </thead>
-              <tbody id="history-container">
-                <tr>
-                  <td colspan="5" class="text-center py-5 text-muted"><i
-                      class="fa-solid fa-spinner fa-spin fs-4 mb-2"></i><br>กำลังโหลดประวัติ...</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap">
-            <div class="text-muted small mb-2" id="page-info">กำลังโหลดข้อมูล...</div>
-            <nav>
-              <ul class="pagination pagination-sm mb-2" id="pagination-container"></ul>
-            </nav>
-          </div>
-
+      <div class="toolbar">
+        <div class="search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" id="searchInput" class="form-control" placeholder="ค้นหาชื่อบอท…">
         </div>
+        <select class="form-select" id="staleSelect" style="width:auto" title="Running เงียบเกินกี่นาที = ถือว่าค้าง">
+          <option value="15">ค้างเกิน 15 นาที</option>
+          <option value="30" selected>ค้างเกิน 30 นาที</option>
+          <option value="60">ค้างเกิน 60 นาที</option>
+          <option value="120">ค้างเกิน 2 ชม.</option>
+          <option value="240">ค้างเกิน 4 ชม.</option>
+        </select>
+        <div class="view-seg" id="viewSeg">
+          <button data-view="card" class="active" title="มุมมองการ์ด"><i class="fa-solid fa-table-cells-large"></i></button>
+          <button data-view="list" title="มุมมองตาราง"><i class="fa-solid fa-list"></i></button>
+        </div>
+        <span class="last-update" id="lastUpdate"></span>
       </div>
 
-      <!-- ============ ANALYTICS VIEW ============ -->
-      <div class="tab-pane fade" id="analytics-view" role="tabpanel">
-        <div class="row g-4">
-          <div class="col-lg-7">
-            <div class="bg-white rounded shadow-sm p-3 h-100">
-              <h5 class="fw-bold text-primary mb-1"><i class="fa-solid fa-chart-column me-2"></i>แนวโน้ม 7 วันล่าสุด
-              </h5>
-              <p class="text-muted small mb-3">จำนวนการรัน Success vs Failed รายวัน</p>
-              <canvas id="trendChart" height="150"></canvas>
-            </div>
+      <div id="bot-container"></div>
+    </section>
+
+    <!-- ================= HISTORY ================= -->
+    <section id="tab-history" hidden>
+      <div class="panel panel-pad">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+          <div class="section-title mb-0"><i class="fa-solid fa-clock-rotate-left me-1"></i> ประวัติการรัน (1,000 รายการล่าสุด)</div>
+          <button class="btn-ghost" id="btnExportCsv"><i class="fa-solid fa-file-csv me-1"></i> Export CSV</button>
+        </div>
+
+        <div class="filter-row">
+          <div class="f-item">
+            <label>สถานะ</label>
+            <select class="form-select form-select-sm" id="filterStatus">
+              <option value="">ทั้งหมด</option>
+              <option value="Success">Success</option>
+              <option value="Failed">Failed</option>
+              <option value="Running">Running</option>
+            </select>
           </div>
-          <div class="col-lg-5">
-            <div class="bg-white rounded shadow-sm p-3 h-100">
-              <h5 class="fw-bold text-danger mb-1"><i class="fa-solid fa-ranking-star me-2"></i>บอทที่พังบ่อย</h5>
-              <p class="text-muted small mb-3">นับจาก Failed ใน 7 วันล่าสุด (Top 10)</p>
-              <div id="top-failing-container">
-                <div class="text-muted small py-2"><i class="fa-solid fa-spinner fa-spin me-2"></i>กำลังคำนวณ...</div>
-              </div>
-            </div>
+          <div class="f-item">
+            <label>ชื่อบอท</label>
+            <input type="text" class="form-control form-control-sm" id="filterBot" placeholder="พิมพ์ชื่อบอท…">
+          </div>
+          <div class="f-item">
+            <label>จากวันที่</label>
+            <input type="date" class="form-control form-control-sm" id="filterFrom">
+          </div>
+          <div class="f-item">
+            <label>ถึงวันที่</label>
+            <input type="date" class="form-control form-control-sm" id="filterTo">
+          </div>
+          <button class="btn-ghost" id="btnClearFilter"><i class="fa-solid fa-filter-circle-xmark me-1"></i> ล้างฟิลเตอร์</button>
+        </div>
+
+        <div class="table-wrap" style="max-height:62vh; overflow-y:auto;">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Date / Time</th>
+                <th>Bot Name</th>
+                <th>Status</th>
+                <th>Stage</th>
+                <th>Error Message</th>
+              </tr>
+            </thead>
+            <tbody id="history-container"></tbody>
+          </table>
+        </div>
+
+        <div class="pagination-bar">
+          <span id="page-info"></span>
+          <div class="d-flex align-items-center gap-2">
+            <select class="form-select form-select-sm" id="pageSizeSelect" style="width:auto">
+              <option value="25" selected>25 / หน้า</option>
+              <option value="50">50 / หน้า</option>
+              <option value="100">100 / หน้า</option>
+            </select>
+            <div class="pager" id="pagination-container"></div>
           </div>
         </div>
       </div>
+    </section>
 
-    </div>
-  </div>
+    <!-- ================= ANALYTICS ================= -->
+    <section id="tab-analytics" hidden>
+      <div class="mini-stats">
+        <div class="panel panel-pad">
+          <div class="section-title">รันทั้งหมดวันนี้</div>
+          <div style="font-size:1.8rem;font-weight:800" id="ana-today-total">–</div>
+          <div style="font-size:.75rem" class="text-secondary" id="ana-today-detail"></div>
+        </div>
+        <div class="panel panel-pad">
+          <div class="section-title">Success Rate 7 วัน</div>
+          <div style="font-size:1.8rem;font-weight:800" id="ana-week-rate">–</div>
+          <div style="font-size:.75rem" class="text-secondary" id="ana-week-detail"></div>
+        </div>
+        <div class="panel panel-pad">
+          <div class="section-title">บอทที่ active</div>
+          <div style="font-size:1.8rem;font-weight:800" id="ana-active-bots">–</div>
+          <div style="font-size:.75rem" class="text-secondary">มีความเคลื่อนไหวใน 7 วัน</div>
+        </div>
+      </div>
 
+      <div class="ana-grid">
+        <div class="panel panel-pad">
+          <div class="section-title"><i class="fa-solid fa-chart-column me-1"></i> แนวโน้ม 7 วันล่าสุด — Success vs Failed</div>
+          <canvas id="trendChart" height="130"></canvas>
+        </div>
+        <div class="panel panel-pad">
+          <div class="section-title"><i class="fa-solid fa-triangle-exclamation me-1"></i> บอทที่พังบ่อย (7 วัน)</div>
+          <div id="top-failing-container"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= EDIT MODAL ================= -->
   <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-      <div class="modal-content border-0 shadow-lg">
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square"></i> แก้ไขข้อมูล Live Status</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h6 class="modal-title fw-bold"><i class="fa-solid fa-pen-to-square me-1"></i> แก้ไข Live Status</h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <form id="editForm">
-            <div class="mb-3"><label class="form-label fw-bold">Bot Name</label><input type="text"
-                class="form-control bg-light" id="editBotName" readonly></div>
+            <div class="mb-3"><label class="form-label">Bot Name</label><input type="text" class="form-control" id="editBotName" readonly></div>
             <div class="mb-3">
-              <label class="form-label fw-bold">Status</label>
+              <label class="form-label">Status</label>
               <select class="form-select" id="editStatus">
                 <option value="Running">Running</option>
                 <option value="Success">Success</option>
                 <option value="Failed">Failed</option>
               </select>
             </div>
-            <div class="mb-3"><label class="form-label fw-bold">Stage</label><input type="text" class="form-control"
-                id="editStage"></div>
-            <div class="mb-3"><label class="form-label fw-bold">Error Message</label><textarea class="form-control"
-                id="editError" rows="2"></textarea></div>
+            <div class="mb-3"><label class="form-label">Stage</label><input type="text" class="form-control" id="editStage"></div>
+            <div class="mb-3"><label class="form-label">Error Message</label><textarea class="form-control" id="editError" rows="2"></textarea></div>
           </form>
         </div>
-        <div class="modal-footer bg-light">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-          <button type="button" class="btn btn-primary px-4" onclick="saveBotEdit()"><i
-              class="fa-solid fa-save me-1"></i> บันทึก</button>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+          <button type="button" class="btn btn-sm btn-primary px-4" onclick="saveBotEdit()"><i class="fa-solid fa-save me-1"></i> บันทึก</button>
         </div>
       </div>
     </div>
@@ -1075,55 +858,40 @@
 
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <script>
-    // 🚨 อย่าลืมแก้ URL เป็นของโปรเจกต์คุณนะครับ
     const firebaseConfig = { databaseURL: "https://com7-rpa-log-default-rtdb.asia-southeast1.firebasedatabase.app/" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Global Variables
+    /* ============ STATE ============ */
     let latestLiveData = null;
     let historyData = [];
     let currentLiveView = 'card';
     let searchQuery = '';
-    let editModalInstance = null;
-
-    // Pagination Variables
+    let statusFilter = '';           // กรองจากการคลิก KPI
+    let staleThresholdMin = 30;
     let currentPage = 1;
     let rowsPerPage = 25;
-
-    // Stale Detection: บอทที่สถานะ Running แต่เงียบเกิน N นาที = น่าจะค้าง/ตาย (ปรับได้บนหน้าจอ)
-    let staleThresholdMin = 30;
-
-    // History Filter + Analytics
     let histFilter = { status: '', bot: '', from: '', to: '' };
     let trendChart = null;
+    let editModalInstance = null;
+    let notifyEnabled = localStorage.getItem('rpa_notify') === '1';
+    let prevFailedSet = null;        // ไว้ตรวจว่ามี Failed "ตัวใหม่" เพื่อแจ้งเตือน
 
     document.addEventListener("DOMContentLoaded", () => {
       editModalInstance = new bootstrap.Modal(document.getElementById('editModal'));
     });
 
-    function getStatusStyle(status) {
-      if (status === "Running") return { class: "status-Running", icon: "fa-spinner fa-spin", textClass: "text-info" };
-      if (status === "Success") return { class: "status-Success", icon: "fa-check-circle", textClass: "text-success" };
-      if (status === "Failed") return { class: "status-Failed", icon: "fa-times-circle", textClass: "text-danger" };
-      if (status === "Stale") return { class: "status-Stale", icon: "fa-plug-circle-exclamation", textClass: "text-warning" };
-      return { class: "bg-secondary", icon: "fa-circle-question", textClass: "text-secondary" };
-    }
-
-    /* ==============================================
-       HELPERS: เวลา & การตรวจจับบอทค้าง
-       ============================================== */
+    /* ============ HELPERS ============ */
     function parseDateTime(s) {
       if (!s) return null;
       const d = new Date(String(s).replace(' ', 'T'));
       return isNaN(d.getTime()) ? null : d;
     }
 
-    // แปลง timestamp เป็นข้อความ "เมื่อ X ที่แล้ว"
     function timeAgo(s) {
       const d = parseDateTime(s);
       if (!d) return s || '-';
@@ -1135,29 +903,45 @@
       return Math.floor(diff / 86400) + ' วันที่แล้ว';
     }
 
-    // รวม status หลายรูปแบบจากแต่ละระบบให้เป็นมาตรฐานเดียว (กันเคส "SUCCESS", "Completed", "error" ฯลฯ)
+    // รวม status หลายรูปแบบจากแต่ละระบบให้เป็นมาตรฐานเดียว
     function normalizeStatus(raw) {
       const s = String(raw || '').trim().toLowerCase();
       if (['success', 'completed', 'complete', 'done', 'ok', 'passed', 'finish', 'finished'].includes(s)) return 'Success';
       if (['failed', 'fail', 'error', 'exception', 'crash'].includes(s)) return 'Failed';
       if (['running', 'start', 'started', 'in progress', 'processing', 'busy', 'pending'].includes(s)) return 'Running';
-      return raw; // ไม่รู้จัก — แสดงตามเดิม
+      return raw || 'Unknown';
     }
 
-    // คืนสถานะ "ตามจริง": ถ้า Running แต่เงียบเกิน threshold ให้ถือว่า Stale (ค้าง)
+    // สถานะ "ตามจริง": Running ที่เงียบเกิน threshold = Stale (ค้าง)
     function getEffectiveStatus(info) {
       if (!info) return 'Unknown';
       const norm = normalizeStatus(info.status);
-      if (norm === 'Failed') return 'Failed';
       if (norm === 'Running') {
         const d = parseDateTime(info.status_datetime);
         if (d && (Date.now() - d.getTime()) > staleThresholdMin * 60000) return 'Stale';
-        return 'Running';
       }
       return norm;
     }
 
-    // จัดลำดับ: Failed → Stale → Running → Success (ดันตัวมีปัญหาขึ้นบนสุดเสมอ)
+    const STATUS_META = {
+      Running: { icon: 'fa-spinner fa-spin', label: 'Running' },
+      Success: { icon: 'fa-circle-check', label: 'Success' },
+      Failed: { icon: 'fa-circle-xmark', label: 'Failed' },
+      Stale: { icon: 'fa-plug-circle-exclamation', label: 'ค้าง' },
+      Unknown: { icon: 'fa-circle-question', label: 'Unknown' }
+    };
+
+    function chip(eff) {
+      const m = STATUS_META[eff] || STATUS_META.Unknown;
+      const cls = STATUS_META[eff] ? eff : 'Unknown';
+      return `<span class="chip s-${cls}"><i class="fa-solid ${m.icon}"></i> ${m.label}</span>`;
+    }
+
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // จัดลำดับ: Failed → Stale → Running → Success (ตัวมีปัญหาขึ้นก่อนเสมอ)
     const STATE_ORDER = { Failed: 0, Stale: 1, Running: 2, Success: 3 };
     function getSortedBots() {
       if (!latestLiveData) return [];
@@ -1171,7 +955,7 @@
       });
     }
 
-    // อัปเดตการ์ด KPI ด้านบน
+    /* ============ KPI + ALERT ============ */
     function renderKPIs(bots) {
       let s = 0, f = 0, r = 0, st = 0;
       bots.forEach(({ eff }) => {
@@ -1184,10 +968,10 @@
       document.getElementById('kpi-failed').textContent = f;
       document.getElementById('kpi-running').textContent = r;
       document.getElementById('kpi-stale').textContent = st;
+      document.querySelector('.kpi.f-failed').classList.toggle('pulse-failed', f > 0);
 
-      // Success Rate วันนี้ คำนวณจาก History (เฉพาะ Success/Failed ของวันนี้)
-      const now = new Date();
-      const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+      // Success Rate วันนี้ จาก history (เฉพาะ Success/Failed)
+      const todayStr = localDateKey(new Date());
       let okT = 0, failT = 0;
       historyData.forEach(log => {
         if ((log.status_datetime || '').startsWith(todayStr)) {
@@ -1200,122 +984,194 @@
       document.getElementById('kpi-rate').textContent = denom ? Math.round(okT / denom * 100) + '%' : '—';
     }
 
-    // Alert Panel: รวมเฉพาะ Failed + Stale ปักหมุดบนสุด
     function renderAlertPanel(bots) {
       const box = document.getElementById('alert-container');
       const alerts = bots.filter(b => b.eff === 'Failed' || b.eff === 'Stale');
       if (alerts.length === 0) {
-        box.innerHTML = '<div class="text-success fw-semibold py-1"><i class="fa-solid fa-circle-check me-2"></i>ทุกระบบทำงานปกติ ไม่มีรายการ Error หรือค้าง</div>';
+        box.innerHTML = '<div class="alert-ok"><i class="fa-solid fa-circle-check"></i> ทุกระบบทำงานปกติ — ไม่มีรายการ Failed หรือค้าง</div>';
         return;
       }
       let html = '';
       alerts.forEach(({ botName, info, eff }) => {
         const isStale = eff === 'Stale';
-        const badge = isStale
-          ? '<span class="badge status-Stale">ค้าง/ไม่ตอบสนอง</span>'
-          : '<span class="badge status-Failed blink">Failed</span>';
         const detail = isStale
-          ? `ค้างที่ Stage: <b>${info.stage || '-'}</b> — ไม่อัปเดตตั้งแต่ ${timeAgo(info.status_datetime)}`
-          : (info.error_message ? `<i class="fa-solid fa-triangle-exclamation"></i> ${info.error_message}` : `พังที่ Stage: <b>${info.stage || '-'}</b>`);
+          ? `ค้างที่ Stage: <b>${esc(info.stage) || '-'}</b> — ไม่อัปเดตตั้งแต่ ${timeAgo(info.status_datetime)}`
+          : (info.error_message ? esc(info.error_message) : `พังที่ Stage: <b>${esc(info.stage) || '-'}</b>`);
         html += `
-                <div class="alert-row ${isStale ? 'stale' : ''} d-flex justify-content-between align-items-center flex-wrap">
-                    <div class="me-2">
-                        <span class="fw-bold"><i class="fa-solid fa-robot me-1 text-secondary"></i>${botName}</span> ${badge}
-                        <div class="small text-muted mt-1">${detail}</div>
-                    </div>
-                    <div class="text-nowrap mt-2 mt-md-0">
-                        <span class="small text-muted me-2" title="${info.status_datetime || ''}"><i class="fa-regular fa-clock"></i> ${timeAgo(info.status_datetime)}</span>
-                        <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="openEditModal('${botName}')"><i class="fa-solid fa-pen" style="font-size:0.7rem;"></i></button>
-                    </div>
-                </div>`;
+          <div class="alert-row ${isStale ? 'stale' : ''}">
+            <div style="min-width:0">
+              <span class="fw-bold">${esc(botName)}</span> ${chip(eff)}
+              <div style="font-size:.78rem" class="mt-1 ${isStale ? '' : ''}">${detail}</div>
+            </div>
+            <div class="text-nowrap d-flex align-items-center gap-2">
+              <span style="font-size:.75rem;color:var(--muted)" title="${esc(info.status_datetime)}"><i class="fa-regular fa-clock"></i> ${timeAgo(info.status_datetime)}</span>
+              <button class="icon-btn" onclick="openEditModal('${esc(botName)}')" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
+            </div>
+          </div>`;
       });
       box.innerHTML = html;
     }
 
-    /* ==============================================
-       1. LIVE DASHBOARD SYSTEM 
-       ============================================== */
+    /* ============ LIVE DASHBOARD ============ */
     function renderLiveDashboard() {
       const botContainer = document.getElementById('bot-container');
       let bots = getSortedBots();
 
-      // อัปเดต KPI + Alert Panel ทุกครั้ง (ใช้ข้อมูลทั้งหมด ไม่กรองตามคำค้นหา)
       renderKPIs(bots);
       renderAlertPanel(bots);
+      checkNewFailures(bots);
 
-      if (bots.length === 0) { botContainer.innerHTML = '<div class="text-center mt-5"><p class="text-muted">ยังไม่มีข้อมูล</p></div>'; return; }
+      if (bots.length === 0) {
+        botContainer.innerHTML = '<div class="empty panel"><i class="fa-solid fa-inbox"></i>ยังไม่มีบอทส่งสถานะเข้ามา</div>';
+        return;
+      }
 
-      // กรองตามคำค้นหา (เฉพาะรายการการ์ด/ตารางด้านล่าง)
       const q = searchQuery.toLowerCase();
-      bots = bots.filter(b => b.botName.toLowerCase().includes(q));
-      if (bots.length === 0) { botContainer.innerHTML = '<div class="text-center mt-5"><p class="text-muted">ไม่พบชื่อ Bot ที่ค้นหา</p></div>'; return; }
+      if (q) bots = bots.filter(b => b.botName.toLowerCase().includes(q));
+      if (statusFilter) bots = bots.filter(b => b.eff === statusFilter);
+      if (bots.length === 0) {
+        botContainer.innerHTML = '<div class="empty panel"><i class="fa-solid fa-magnifying-glass"></i>ไม่พบบอทตามเงื่อนไข (ลองล้างคำค้นหา/ฟิลเตอร์)</div>';
+        return;
+      }
 
       let html = '';
       if (currentLiveView === 'card') {
-        html += '<div class="row">';
+        html += '<div class="bot-grid">';
         bots.forEach(({ botName, info, eff }) => {
-          const st = getStatusStyle(eff);
-          const outline = eff === 'Failed' ? 'is-failed' : (eff === 'Stale' ? 'is-stale' : '');
-          const errorHtml = info.error_message ? `<div class="alert alert-danger mt-3 p-1 px-2 text-sm" style="font-size:0.75rem;"><i class="fa-solid fa-triangle-exclamation"></i> ${info.error_message}</div>` : '';
-          const staleNote = eff === 'Stale' ? `<div class="small text-warning mt-2"><i class="fa-solid fa-plug-circle-exclamation"></i> ไม่อัปเดตเกิน ${staleThresholdMin} นาที — อาจค้าง</div>` : '';
+          const errorHtml = info.error_message ? `<div class="b-err"><i class="fa-solid fa-triangle-exclamation me-1"></i>${esc(info.error_message)}</div>` : '';
+          const staleNote = eff === 'Stale' ? `<div class="b-stalenote"><i class="fa-solid fa-plug-circle-exclamation me-1"></i>ไม่อัปเดตเกิน ${staleThresholdMin} นาที — อาจค้าง</div>` : '';
           html += `
-                    <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-                        <div class="card card-bot h-100 ${outline}">
-                            <div class="position-absolute top-0 end-0 p-2 action-btns z-1">
-                                <button class="btn btn-sm btn-light text-primary border py-0 px-2" onclick="openEditModal('${botName}')"><i class="fa-solid fa-pen" style="font-size:0.8rem;"></i></button>
-                                <button class="btn btn-sm btn-light text-danger border py-0 px-2 ms-1" onclick="deleteBot('${botName}')"><i class="fa-solid fa-trash" style="font-size:0.8rem;"></i></button>
-                            </div>
-                            <div class="card-body pt-4 pb-2">
-                                <h6 class="fw-bold mb-3 text-truncate"><i class="fa-solid fa-robot text-secondary me-1"></i> ${botName}</h6>
-                                <span class="badge ${st.class} status-badge mb-3"><i class="fa-solid ${st.icon}"></i> ${eff}</span>
-                                <p class="card-text m-0 text-muted" style="font-size:0.75rem;">Stage:</p>
-                                <p class="card-text fw-semibold text-primary" style="font-size:0.9rem;">${info.stage}</p>
-                                ${errorHtml}${staleNote}
-                            </div>
-                            <div class="card-footer bg-transparent text-muted border-0 pt-0" style="font-size: 0.7rem;" title="${info.status_datetime || ''}"><i class="fa-regular fa-clock"></i> ${timeAgo(info.status_datetime)}</div>
-                        </div>
-                    </div>`;
+            <div class="bot-card b-${eff}">
+              <div class="b-actions">
+                <button class="icon-btn" onclick="openEditModal('${esc(botName)}')" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
+                <button class="icon-btn danger" onclick="deleteBot('${esc(botName)}')" title="ลบออกจาก Live"><i class="fa-solid fa-trash"></i></button>
+              </div>
+              <div class="b-name" title="${esc(botName)}">${esc(botName)}</div>
+              <div class="mt-2">${chip(eff)}</div>
+              <div class="b-stage" title="${esc(info.stage)}">Stage: <b>${esc(info.stage) || '-'}</b></div>
+              ${errorHtml}${staleNote}
+              <div class="b-time">
+                <span title="${esc(info.status_datetime)}"><i class="fa-regular fa-clock me-1"></i>${timeAgo(info.status_datetime)}</span>
+                <span style="font-variant-numeric:tabular-nums">${esc((info.status_datetime || '').slice(11, 16))}</span>
+              </div>
+            </div>`;
         });
         html += '</div>';
       } else {
-        html += `
-            <div class="table-responsive bg-white rounded shadow-sm">
-                <table class="table table-hover align-middle mb-0" style="font-size: 0.9rem;">
-                    <thead class="table-light"><tr><th>Bot Name</th><th>Status</th><th>Current Stage</th><th>Date / Time</th><th class="text-center">Action</th></tr></thead>
-                    <tbody>`;
+        html += `<div class="table-wrap"><table class="tbl">
+          <thead><tr><th>Bot Name</th><th>Status</th><th>Current Stage</th><th>อัปเดตล่าสุด</th><th class="text-center">Action</th></tr></thead><tbody>`;
         bots.forEach(({ botName, info, eff }) => {
-          const st = getStatusStyle(eff);
           const stageDisplay = (eff === "Failed" && info.error_message)
-            ? `<span>${info.stage}</span> <br><small class="text-danger"><i class="fa-solid fa-triangle-exclamation"></i> ${info.error_message}</small>`
-            : (eff === 'Stale' ? `${info.stage} <br><small class="text-warning"><i class="fa-solid fa-plug-circle-exclamation"></i> ไม่อัปเดตเกิน ${staleThresholdMin} นาที</small>` : info.stage);
+            ? `${esc(info.stage)}<br><small style="color:var(--critical-text)"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(info.error_message)}</small>`
+            : (eff === 'Stale' ? `${esc(info.stage)}<br><small style="color:var(--warning-text)"><i class="fa-solid fa-plug-circle-exclamation"></i> ไม่อัปเดตเกิน ${staleThresholdMin} นาที</small>` : esc(info.stage));
           html += `
-                    <tr>
-                        <td class="fw-bold"><i class="fa-solid fa-robot text-secondary me-2"></i>${botName}</td>
-                        <td><span class="badge ${st.class} table-status-badge"><i class="fa-solid ${st.icon}"></i> ${eff}</span></td>
-                        <td>${stageDisplay}</td><td class="text-muted" style="font-size:0.85rem;" title="${info.status_datetime || ''}">${timeAgo(info.status_datetime)}</td>
-                        <td class="text-center action-btns">
-                            <button class="btn btn-sm btn-outline-primary py-0 px-2" onclick="openEditModal('${botName}')"><i class="fa-solid fa-pen" style="font-size:0.7rem;"></i></button>
-                            <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="deleteBot('${botName}')"><i class="fa-solid fa-trash" style="font-size:0.7rem;"></i></button>
-                        </td>
-                    </tr>`;
+            <tr>
+              <td class="t-name">${esc(botName)}</td>
+              <td>${chip(eff)}</td>
+              <td>${stageDisplay}</td>
+              <td class="t-time" title="${esc(info.status_datetime)}">${timeAgo(info.status_datetime)}</td>
+              <td class="text-center">
+                <button class="icon-btn d-inline-grid" onclick="openEditModal('${esc(botName)}')"><i class="fa-solid fa-pen"></i></button>
+                <button class="icon-btn danger d-inline-grid" onclick="deleteBot('${esc(botName)}')"><i class="fa-solid fa-trash"></i></button>
+              </td>
+            </tr>`;
         });
         html += `</tbody></table></div>`;
       }
       botContainer.innerHTML = html;
+      document.getElementById('lastUpdate').textContent = 'อัปเดตล่าสุด ' + new Date().toLocaleTimeString('th-TH');
     }
 
+    /* ============ แจ้งเตือนเมื่อมี FAILED ใหม่ ============ */
+    function checkNewFailures(bots) {
+      const failedNow = new Set(bots.filter(b => b.eff === 'Failed').map(b => b.botName));
+      if (prevFailedSet !== null && notifyEnabled) {
+        const newFails = [...failedNow].filter(n => !prevFailedSet.has(n));
+        if (newFails.length > 0) {
+          beep();
+          if (Notification.permission === 'granted') {
+            new Notification('🔴 RPA Failed: ' + newFails.join(', '), {
+              body: newFails.map(n => (latestLiveData[n] && latestLiveData[n].error_message) || '').filter(Boolean).join('\n').slice(0, 180) || 'ตรวจสอบที่ Dashboard',
+            });
+          }
+        }
+      }
+      prevFailedSet = failedNow;
+    }
+
+    function beep() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = 660; o.type = 'sine';
+        g.gain.setValueAtTime(.25, ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .55);
+        o.start(); o.stop(ctx.currentTime + .55);
+      } catch (e) { /* บาง browser บล็อก audio ก่อน user interaction — ข้ามได้ */ }
+    }
+
+    function renderNotifyBtn() {
+      const btn = document.getElementById('notifyToggle');
+      btn.classList.toggle('on', notifyEnabled);
+      btn.querySelector('span').textContent = notifyEnabled ? 'Alert: ON' : 'Alert: OFF';
+      btn.querySelector('i').className = notifyEnabled ? 'fa-solid fa-bell' : 'fa-regular fa-bell';
+    }
+
+    document.getElementById('notifyToggle').addEventListener('click', async () => {
+      notifyEnabled = !notifyEnabled;
+      if (notifyEnabled && 'Notification' in window && Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
+      localStorage.setItem('rpa_notify', notifyEnabled ? '1' : '0');
+      renderNotifyBtn();
+    });
+    renderNotifyBtn();
+
+    /* ============ EVENTS: LIVE ============ */
+    renderLiveDashboard(); // วาด empty state ทันทีระหว่างรอต่อ Firebase
     db.ref('rpa_live_status').on('value', (snapshot) => { latestLiveData = snapshot.val(); renderLiveDashboard(); });
     document.getElementById('searchInput').addEventListener('input', (e) => { searchQuery = e.target.value; renderLiveDashboard(); });
-    document.querySelectorAll('.view-selector').forEach(radio => { radio.addEventListener('change', (e) => { currentLiveView = e.target.value; renderLiveDashboard(); }); });
     document.getElementById('staleSelect').addEventListener('change', (e) => { staleThresholdMin = parseInt(e.target.value); renderLiveDashboard(); });
 
-    // รีเฟรชทุก 30 วิ เพื่ออัปเดตเวลา "เมื่อ X ที่แล้ว" และตรวจจับบอทค้างแบบ real-time
-    // (แม้ไม่มีข้อมูลใหม่เข้ามา เวลาที่ผ่านไปก็ทำให้บอทกลายเป็น Stale ได้)
+    document.querySelectorAll('#viewSeg button').forEach(b => b.addEventListener('click', () => {
+      document.querySelectorAll('#viewSeg button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      currentLiveView = b.dataset.view;
+      renderLiveDashboard();
+    }));
+
+    // คลิก KPI = กรองตามสถานะนั้น (คลิกซ้ำ = ล้าง)
+    document.querySelectorAll('.kpi[data-filter]').forEach(k => k.addEventListener('click', () => {
+      const f = k.dataset.filter;
+      statusFilter = (statusFilter === f) ? '' : f;
+      document.querySelectorAll('.kpi').forEach(x => x.classList.toggle('active-filter', x.dataset.filter === statusFilter));
+      renderLiveDashboard();
+    }));
+
+    // connection indicator
+    db.ref('.info/connected').on('value', (snap) => {
+      const on = snap.val() === true;
+      const badge = document.getElementById('connBadge');
+      badge.classList.toggle('online', on);
+      badge.classList.toggle('offline', !on);
+      document.getElementById('connText').textContent = on ? 'LIVE' : 'offline';
+    });
+
+    // รีเฟรชทุก 30 วิ — เวลา "X ที่แล้ว" เดินต่อ + ตรวจ Stale แม้ไม่มีข้อมูลใหม่
     setInterval(renderLiveDashboard, 30000);
 
-    /* ==============================================
-       HISTORY FILTER + EXPORT CSV
-       ============================================== */
+    /* ============ TABS ============ */
+    document.querySelectorAll('#mainTabs button').forEach(b => b.addEventListener('click', () => {
+      document.querySelectorAll('#mainTabs button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      ['live', 'history', 'analytics'].forEach(t => {
+        document.getElementById('tab-' + t).hidden = (t !== b.dataset.tab);
+      });
+      if (b.dataset.tab === 'analytics') { renderAnalytics(); if (trendChart) trendChart.resize(); }
+    }));
+
+    /* ============ HISTORY ============ */
     function getFilteredHistory() {
       return historyData.filter(log => {
         if (histFilter.status && normalizeStatus(log.status) !== histFilter.status) return false;
@@ -1339,12 +1195,10 @@
     ['filterStatus', 'filterBot', 'filterFrom', 'filterTo'].forEach(id => {
       document.getElementById(id).addEventListener('input', applyHistoryFilter);
     });
+
     document.getElementById('btnClearFilter').addEventListener('click', () => {
       histFilter = { status: '', bot: '', from: '', to: '' };
-      document.getElementById('filterStatus').value = '';
-      document.getElementById('filterBot').value = '';
-      document.getElementById('filterFrom').value = '';
-      document.getElementById('filterTo').value = '';
+      ['filterStatus', 'filterBot', 'filterFrom', 'filterTo'].forEach(id => document.getElementById(id).value = '');
       currentPage = 1;
       renderHistoryTable();
     });
@@ -1352,10 +1206,10 @@
     document.getElementById('btnExportCsv').addEventListener('click', () => {
       const rows = getFilteredHistory();
       if (!rows.length) { alert('ไม่มีข้อมูลให้ Export'); return; }
-      const esc = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+      const escCsv = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
       const header = ['Date/Time', 'Bot Name', 'Status', 'Stage', 'Error Message'];
-      const lines = [header.map(esc).join(',')];
-      rows.forEach(r => lines.push([r.status_datetime, r.bot_name, normalizeStatus(r.status), r.stage, r.error_message].map(esc).join(',')));
+      const lines = [header.map(escCsv).join(',')];
+      rows.forEach(r => lines.push([r.status_datetime, r.bot_name, normalizeStatus(r.status), r.stage, r.error_message].map(escCsv).join(',')));
       const csv = '﻿' + lines.join('\r\n'); // BOM กัน Excel อ่านภาษาไทยเพี้ยน
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -1368,17 +1222,95 @@
       URL.revokeObjectURL(url);
     });
 
-    /* ==============================================
-       ANALYTICS: กราฟแนวโน้ม 7 วัน + Top Failing Bots
-       ============================================== */
+    function renderHistoryTable() {
+      const tbody = document.getElementById('history-container');
+      const data = getFilteredHistory();
+      if (data.length === 0) {
+        const msg = historyData.length === 0 ? 'ยังไม่มีประวัติการรัน' : 'ไม่พบข้อมูลตามเงื่อนไขที่กรอง';
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4" style="color:var(--muted)">${msg}</td></tr>`;
+        document.getElementById('page-info').innerHTML = '';
+        document.getElementById('pagination-container').innerHTML = '';
+        return;
+      }
+
+      const totalItems = data.length;
+      const totalPages = Math.ceil(totalItems / rowsPerPage);
+      if (currentPage > totalPages) currentPage = totalPages;
+      if (currentPage < 1) currentPage = 1;
+
+      const startIndex = (currentPage - 1) * rowsPerPage;
+      const endIndex = Math.min(startIndex + rowsPerPage, totalItems);
+
+      let html = '';
+      data.slice(startIndex, endIndex).forEach(log => {
+        const ns = normalizeStatus(log.status);
+        const errorText = log.error_message
+          ? `<span style="color:var(--critical-text)"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(log.error_message)}</span>`
+          : `<span style="color:var(--muted)">-</span>`;
+        html += `
+          <tr>
+            <td class="t-time">${esc(log.status_datetime) || '-'}</td>
+            <td class="t-name">${esc(log.bot_name)}</td>
+            <td>${chip(ns)}</td>
+            <td>${esc(log.stage)}</td>
+            <td style="font-size:.8rem">${errorText}</td>
+          </tr>`;
+      });
+      tbody.innerHTML = html;
+
+      document.getElementById('page-info').innerHTML = `แสดงแถวที่ <b>${startIndex + 1}–${endIndex}</b> จาก ${totalItems} รายการ`;
+      renderPaginationButtons(totalPages);
+    }
+
+    function renderPaginationButtons(totalPages) {
+      const box = document.getElementById('pagination-container');
+      let h = `<button ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})"><i class="fa-solid fa-chevron-left"></i></button>`;
+      let startPage = Math.max(1, currentPage - 2);
+      let endPage = Math.min(totalPages, currentPage + 2);
+      if (startPage > 1) h += `<button disabled>…</button>`;
+      for (let i = startPage; i <= endPage; i++) {
+        h += `<button class="${i === currentPage ? 'cur' : ''}" onclick="goToPage(${i})">${i}</button>`;
+      }
+      if (endPage < totalPages) h += `<button disabled>…</button>`;
+      h += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})"><i class="fa-solid fa-chevron-right"></i></button>`;
+      box.innerHTML = h;
+    }
+
+    window.goToPage = function (pageNumber) { currentPage = pageNumber; renderHistoryTable(); };
+
+    document.getElementById('pageSizeSelect').addEventListener('change', function () {
+      rowsPerPage = parseInt(this.value);
+      currentPage = 1;
+      renderHistoryTable();
+    });
+
+    db.ref('rpa_history_logs').orderByChild('status_datetime').limitToLast(1000).on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        historyData = Object.values(data).sort((a, b) =>
+          (b.status_datetime || '').localeCompare(a.status_datetime || ''));
+        renderHistoryTable();
+        renderLiveDashboard();   // KPI Success Rate อิง history
+        renderAnalytics();
+      }
+    });
+
+    /* ============ ANALYTICS ============ */
+    function localDateKey(d) {
+      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    }
+
     function lastNDays(n) {
       const days = [];
       const t = new Date();
       for (let i = n - 1; i >= 0; i--) {
-        const d = new Date(t.getFullYear(), t.getMonth(), t.getDate() - i);
-        days.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'));
+        days.push(localDateKey(new Date(t.getFullYear(), t.getMonth(), t.getDate() - i)));
       }
       return days;
+    }
+
+    function cssVar(name) {
+      return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     }
 
     function renderTrendChart() {
@@ -1395,41 +1327,39 @@
           else if (ns === 'Failed') fail[k]++;
         }
       });
-      const labels = days.map(k => k.slice(5));
+      const labels = days.map(k => {
+        const d = parseDateTime(k + ' 00:00:00');
+        return d ? d.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric' }) : k.slice(5);
+      });
       const dataSucc = days.map(k => succ[k]);
       const dataFail = days.map(k => fail[k]);
-      if (trendChart) {
-        trendChart.data.labels = labels;
-        trendChart.data.datasets[0].data = dataSucc;
-        trendChart.data.datasets[1].data = dataFail;
-        trendChart.update();
-        return;
-      }
-      // ธีม pixel: ฟอนต์ Press Start 2P, สีนีออน, แท่งเหลี่ยม
-      const txt = getComputedStyle(document.body).getPropertyValue('--c-white').trim() || '#FFF1E8';
-      if (Chart.defaults) {
-        Chart.defaults.color = txt;
-        Chart.defaults.font.family = "'Press Start 2P', 'Kanit', sans-serif";
-        Chart.defaults.font.size = 7;
-      }
-      const pixelGrid = { color: 'rgba(131,118,156,.25)', lineWidth: 1 };
+
+      const good = cssVar('--good'), crit = cssVar('--critical');
+      const ink2 = cssVar('--ink-2'), grid = cssVar('--grid');
+
+      if (trendChart) trendChart.destroy();
+      Chart.defaults.font.family = "'Inter','Kanit',system-ui,sans-serif";
       trendChart = new Chart(canvas, {
         type: 'bar',
         data: {
           labels,
           datasets: [
-            { label: 'SUCCESS', data: dataSucc, backgroundColor: '#00E436', borderColor: '#000', borderWidth: 2, borderRadius: 0 },
-            { label: 'FAILED', data: dataFail, backgroundColor: '#FF004D', borderColor: '#000', borderWidth: 2, borderRadius: 0 }
+            // Success ซ้ายเสมอ + legend = secondary encoding (ไม่พึ่งสีอย่างเดียว)
+            { label: 'Success', data: dataSucc, backgroundColor: good, borderRadius: { topLeft: 4, topRight: 4 }, borderSkipped: 'start', categoryPercentage: .62, barPercentage: .85 },
+            { label: 'Failed', data: dataFail, backgroundColor: crit, borderRadius: { topLeft: 4, topRight: 4 }, borderSkipped: 'start', categoryPercentage: .62, barPercentage: .85 }
           ]
         },
         options: {
           responsive: true,
-          maintainAspectRatio: true,
+          interaction: { mode: 'index', intersect: false },
           scales: {
-            x: { grid: pixelGrid, ticks: { color: txt, font: { size: 7 } } },
-            y: { beginAtZero: true, grid: pixelGrid, ticks: { color: txt, precision: 0, font: { size: 7 } } }
+            x: { grid: { display: false }, ticks: { color: ink2, font: { size: 11 } }, border: { color: grid } },
+            y: { beginAtZero: true, grid: { color: grid, lineWidth: 1 }, ticks: { color: ink2, precision: 0, font: { size: 11 } }, border: { display: false } }
           },
-          plugins: { legend: { position: 'top', labels: { color: txt, boxWidth: 12, padding: 14 } } }
+          plugins: {
+            legend: { position: 'top', align: 'end', labels: { color: ink2, boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle', padding: 14, font: { size: 11 } } },
+            tooltip: { backgroundColor: cssVar('--surface-2'), titleColor: cssVar('--ink'), bodyColor: cssVar('--ink-2'), borderColor: grid, borderWidth: 1, padding: 10 }
+          }
         }
       });
     }
@@ -1450,189 +1380,85 @@
       });
       const arr = Object.entries(agg).map(([name, v]) => ({ name, ...v })).sort((a, b) => b.count - a.count).slice(0, 10);
       if (!arr.length) {
-        box.innerHTML = '<div class="text-success py-2"><i class="fa-solid fa-circle-check me-2"></i>ไม่มีบอทที่พังใน 7 วันล่าสุด</div>';
+        box.innerHTML = '<div class="alert-ok" style="font-size:.8rem"><i class="fa-solid fa-circle-check"></i> ไม่มีบอทพังใน 7 วันล่าสุด</div>';
         return;
       }
       const max = arr[0].count;
-      let html = '<table class="table table-sm table-borderless mb-0">';
+      let html = '';
       arr.forEach((b, i) => {
         const pct = Math.round(b.count / max * 100);
         html += `
-                <tr>
-                    <td style="width:22px;" class="text-muted fw-bold align-middle">${i + 1}</td>
-                    <td>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-semibold text-truncate" style="max-width:170px;" title="${b.name}"><i class="fa-solid fa-robot text-secondary me-1"></i>${b.name}</span>
-                            <span class="badge bg-danger ms-2">${b.count} ครั้ง</span>
-                        </div>
-                        <div class="progress mt-1" style="height:5px;"><div class="progress-bar bg-danger" style="width:${pct}%"></div></div>
-                        <div class="small text-muted mt-1">พังล่าสุด: ${timeAgo(b.last)}</div>
-                    </td>
-                </tr>`;
+          <div class="rank-row">
+            <div class="d-flex justify-content-between align-items-center gap-2">
+              <span style="font-weight:600;font-size:.83rem" class="text-truncate" title="${esc(b.name)}">
+                <span style="color:var(--muted);font-weight:700">${i + 1}.</span> ${esc(b.name)}
+              </span>
+              <span class="chip s-Failed">${b.count} ครั้ง</span>
+            </div>
+            <div class="rank-bar"><div style="width:${pct}%"></div></div>
+            <div style="font-size:.72rem;color:var(--muted)" class="mt-1">พังล่าสุด: ${timeAgo(b.last)}</div>
+          </div>`;
       });
-      html += '</table>';
       box.innerHTML = html;
+    }
+
+    function renderAnaStats() {
+      const todayKey = localDateKey(new Date());
+      const days = lastNDays(7);
+      let okT = 0, failT = 0, okW = 0, failW = 0;
+      const activeBots = new Set();
+      historyData.forEach(log => {
+        const k = String(log.status_datetime || '').slice(0, 10);
+        const ns = normalizeStatus(log.status);
+        if (k === todayKey) {
+          if (ns === 'Success') okT++;
+          else if (ns === 'Failed') failT++;
+        }
+        if (k >= days[0]) {
+          activeBots.add(log.bot_name || '?');
+          if (ns === 'Success') okW++;
+          else if (ns === 'Failed') failW++;
+        }
+      });
+      document.getElementById('ana-today-total').textContent = okT + failT;
+      document.getElementById('ana-today-detail').textContent = `สำเร็จ ${okT} · ล้มเหลว ${failT}`;
+      const denomW = okW + failW;
+      document.getElementById('ana-week-rate').textContent = denomW ? Math.round(okW / denomW * 100) + '%' : '—';
+      document.getElementById('ana-week-detail').textContent = `จาก ${denomW} รอบการรัน (Success+Failed)`;
+      document.getElementById('ana-active-bots').textContent = activeBots.size;
     }
 
     function renderAnalytics() {
       renderTrendChart();
       renderTopFailing();
+      renderAnaStats();
     }
 
-    // เมื่อสลับมาแท็บ Analytics ให้ resize กราฟ (กันกรณีสร้างตอน canvas ยังถูกซ่อน)
-    document.getElementById('analytics-tab').addEventListener('shown.bs.tab', () => {
-      renderAnalytics();
-      if (trendChart) trendChart.resize();
-    });
-
-    /* ==============================================
-       THEME TOGGLE (Dark = เดิม / Light = ใหม่) — จำค่าใน localStorage
-       ============================================== */
-    function applyChartTheme() {
-      if (typeof Chart === 'undefined') return;
-      const txt = getComputedStyle(document.body).getPropertyValue('--c-white').trim() || '#FFF1E8';
-      Chart.defaults.color = txt;
-      if (trendChart) {
-        trendChart.options.scales.x.ticks.color = txt;
-        trendChart.options.scales.y.ticks.color = txt;
-        trendChart.options.plugins.legend.labels.color = txt;
-        trendChart.update();
-      }
-    }
-
+    /* ============ THEME ============ */
     function applyTheme(theme) {
-      const isLight = theme === 'light';
-      document.body.classList.toggle('theme-light', isLight);
-      // ปุ่มแสดง "ทางเลือกที่จะสลับไป"
-      document.getElementById('themeToggle').innerHTML = isLight
-        ? '<i class="fa-solid fa-moon"></i> <span>DARK</span>'
-        : '<i class="fa-solid fa-sun"></i> <span>LIGHT</span>';
+      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.setAttribute('data-bs-theme', theme); // ให้ modal/form ของ Bootstrap ตามธีมด้วย
+      document.getElementById('themeToggle').innerHTML = theme === 'light'
+        ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
       localStorage.setItem('rpa_theme', theme);
-      applyChartTheme();
+      // สร้างกราฟใหม่ให้สีตรงธีม (ถ้าเปิดแท็บ Analytics อยู่)
+      if (trendChart) renderTrendChart();
     }
 
     document.getElementById('themeToggle').addEventListener('click', () => {
-      const cur = document.body.classList.contains('theme-light') ? 'light' : 'dark';
+      const cur = document.documentElement.getAttribute('data-theme') || 'dark';
       applyTheme(cur === 'light' ? 'dark' : 'light');
     });
 
-    // โหลดธีมที่เคยเลือกไว้ (ค่าเริ่มต้น = dark ตามของเดิม)
     applyTheme(localStorage.getItem('rpa_theme') || 'dark');
 
-    /* ==============================================
-       2. HISTORY LOGS SYSTEM (With Pagination)
-       ============================================== */
-    function renderHistoryTable() {
-      const tbody = document.getElementById('history-container');
-      const data = getFilteredHistory();
-      if (data.length === 0) {
-        const msg = historyData.length === 0 ? 'ยังไม่มีประวัติการรัน' : 'ไม่พบข้อมูลตามเงื่อนไขที่กรอง';
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">${msg}</td></tr>`;
-        document.getElementById('page-info').innerHTML = '';
-        document.getElementById('pagination-container').innerHTML = '';
-        return;
-      }
-
-      // คำนวณขอบเขตข้อมูลที่จะโชว์ในหน้านี้ (Slicing Array)
-      const totalItems = data.length;
-      const totalPages = Math.ceil(totalItems / rowsPerPage);
-
-      // กันเหนียวกรณีลบหน้าสุดท้ายแล้วหน้าปัจจุบันเกิน
-      if (currentPage > totalPages) currentPage = totalPages;
-      if (currentPage < 1) currentPage = 1;
-
-      const startIndex = (currentPage - 1) * rowsPerPage;
-      const endIndex = Math.min(startIndex + rowsPerPage, totalItems);
-      const paginatedData = data.slice(startIndex, endIndex);
-
-      // วาดตารางเฉพาะข้อมูลในหน้าปัจจุบัน
-      let html = '';
-      paginatedData.forEach(log => {
-        const st = getStatusStyle(normalizeStatus(log.status));
-        const errorText = log.error_message ? `<span class="text-danger"><i class="fa-solid fa-triangle-exclamation"></i> ${log.error_message}</span>` : `<span class="text-success">-</span>`;
-        html += `
-                <tr>
-                    <td class="text-muted">${log.status_datetime || '-'}</td>
-                    <td class="fw-bold text-dark"><i class="fa-solid fa-robot text-secondary me-1" style="font-size:0.7rem;"></i> ${log.bot_name}</td>
-                    <td><span class="${st.textClass} fw-bold" style="font-size:0.8rem;"><i class="fa-solid ${st.icon}"></i> ${normalizeStatus(log.status)}</span></td>
-                    <td class="text-primary">${log.stage}</td>
-                    <td style="font-size:0.8rem;">${errorText}</td>
-                </tr>`;
-      });
-      tbody.innerHTML = html;
-
-      // วาดปุ่มตัวเลข Pagination
-      document.getElementById('page-info').innerHTML = `แสดงผลแถวที่ <b>${startIndex + 1} - ${endIndex}</b> จากทั้งหมด ${totalItems} รายการ`;
-      renderPaginationButtons(totalPages);
-    }
-
-    function renderPaginationButtons(totalPages) {
-      const ul = document.getElementById('pagination-container');
-      let pHtml = '';
-
-      // ปุ่ม Prev
-      pHtml += `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                    <a class="page-link" onclick="goToPage(${currentPage - 1})">ก่อนหน้า</a>
-                  </li>`;
-
-      // คำนวณช่วงเลขหน้าที่จะโชว์ (สูงสุดโชว์แค่ 5 ปุ่ม กันมันล้นขอบจอ)
-      let startPage = Math.max(1, currentPage - 2);
-      let endPage = Math.min(totalPages, currentPage + 2);
-
-      if (startPage > 1) { pHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`; }
-
-      for (let i = startPage; i <= endPage; i++) {
-        pHtml += `<li class="page-item ${i === currentPage ? 'active' : ''}">
-                        <a class="page-link" onclick="goToPage(${i})">${i}</a>
-                      </li>`;
-      }
-
-      if (endPage < totalPages) { pHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`; }
-
-      // ปุ่ม Next
-      pHtml += `<li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
-                    <a class="page-link" onclick="goToPage(${currentPage + 1})">ถัดไป</a>
-                  </li>`;
-
-      ul.innerHTML = pHtml;
-    }
-
-    // ฟังก์ชันเปลี่ยนหน้า
-    window.goToPage = function (pageNumber) {
-      currentPage = pageNumber;
-      renderHistoryTable();
-    };
-
-    // Event เมื่อเปลี่ยนจำนวนแถวต่อหน้า
-    document.getElementById('pageSizeSelect').addEventListener('change', function () {
-      rowsPerPage = parseInt(this.value);
-      currentPage = 1; // กลับไปหน้า 1 เสมอเมื่อเปลี่ยนจำนวน
-      renderHistoryTable();
-    });
-
-    // ดึง History Data (เพิ่มเป็น 1000 แถว เพราะเรามี Paging แล้ว)
-    db.ref('rpa_history_logs').orderByChild('status_datetime').limitToLast(1000).on('value', (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        historyData = Object.values(data).sort((a, b) => {
-          const timeA = a.status_datetime || "";
-          const timeB = b.status_datetime || "";
-          return timeB.localeCompare(timeA);
-        });
-        renderHistoryTable();
-        renderLiveDashboard(); // รีเฟรช KPI "Success Rate วันนี้" ที่อิงข้อมูล History
-        renderAnalytics();     // รีเฟรชกราฟแนวโน้ม + Top failing bots
-      }
-    });
-
-    /* ==============================================
-       3. EDIT / DELETE FUNCTIONS
-       ============================================== */
+    /* ============ EDIT / DELETE ============ */
     window.openEditModal = function (botName) {
       const info = latestLiveData[botName];
+      if (!info) return;
       document.getElementById('editBotName').value = botName;
-      document.getElementById('editStatus').value = info.status;
-      document.getElementById('editStage').value = info.stage;
+      document.getElementById('editStatus').value = normalizeStatus(info.status) === 'Unknown' ? 'Running' : normalizeStatus(info.status);
+      document.getElementById('editStage').value = info.stage || '';
       document.getElementById('editError').value = info.error_message || '';
       editModalInstance.show();
     };
@@ -1640,9 +1466,14 @@
     window.saveBotEdit = function () {
       const botName = document.getElementById('editBotName').value;
       const now = new Date();
-      const formattedTime = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
-      const updateData = { status: document.getElementById('editStatus').value, stage: document.getElementById('editStage').value, error_message: document.getElementById('editError').value, status_datetime: formattedTime };
-
+      const p = n => String(n).padStart(2, '0');
+      const formattedTime = `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())}`;
+      const updateData = {
+        status: document.getElementById('editStatus').value,
+        stage: document.getElementById('editStage').value,
+        error_message: document.getElementById('editError').value,
+        status_datetime: formattedTime
+      };
       db.ref('rpa_live_status/' + botName).update(updateData).then(() => {
         editModalInstance.hide();
         updateData.bot_name = botName + " (Manual Edit)";
@@ -1651,7 +1482,9 @@
     };
 
     window.deleteBot = function (botName) {
-      if (confirm(`⚠️ ลบสถานะของ "${botName}" ออกจาก Live Dashboard?`)) { db.ref('rpa_live_status/' + botName).remove(); }
+      if (confirm(`⚠️ ลบสถานะของ "${botName}" ออกจาก Live Dashboard?\n(ประวัติใน History ยังอยู่ครบ)`)) {
+        db.ref('rpa_live_status/' + botName).remove();
+      }
     };
   </script>
 </body>

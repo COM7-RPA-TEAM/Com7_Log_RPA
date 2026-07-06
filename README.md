@@ -7,6 +7,7 @@
 | | |
 |---|---|
 | 🖥️ **Dashboard** | https://com7-rpa-log.web.app |
+| 📺 **TV Monitor (Wallboard)** | https://com7-rpa-log.web.app/tv.html — เปิดค้างบนจอ TV ได้เลย |
 | 🔌 **API Endpoint** | `https://com7rpalog-436289358307.asia-southeast3.run.app/api/v1/bot-log` |
 | 📖 **Swagger (ทดสอบ/เอกสาร API)** | https://com7rpalog-436289358307.asia-southeast3.run.app/docs |
 
@@ -42,7 +43,8 @@ Com7-RPA-Log/
 ├── testapi.py           # สคริปต์ทดสอบยิง API
 └── web-rpa/             # Firebase project (Hosting + Functions)
     ├── firebase.json
-    ├── public/index.html  # หน้า Dashboard (ธีม Pixel Game UI)
+    ├── public/index.html  # หน้า Dashboard หลัก (Live / History / Analytics)
+    ├── public/tv.html     # โหมดจอ TV / Wallboard (เปิดค้างบนจอ monitor)
     └── functions/         # Cloud Functions
         └── index.js       # งานอัตโนมัติ: เคลียร์การ์ด Success ทุกเที่ยงคืน
 ```
@@ -51,12 +53,14 @@ Com7-RPA-Log/
 
 ## ฟีเจอร์ Dashboard
 
-- **Live Dashboard** — KPI สรุป (Success / Failed / Running / ค้าง / Success Rate วันนี้), การ์ดสถานะบอทแบบ Real-time, ค้นหา, มุมมอง Card/List
+- **Live Dashboard** — KPI สรุป (Running / Success / Failed / ค้าง / Success Rate วันนี้) **คลิก KPI เพื่อกรองตามสถานะได้เลย**, การ์ดสถานะบอทแบบ Real-time (เรียงตัวมีปัญหาขึ้นก่อนเสมอ), ค้นหา, มุมมอง Card/List
 - **Alert Panel** — รวมรายการ Error และบอทค้างไว้บนสุด ดูปุ๊บรู้ปั๊บว่าอะไรพัง
 - **Stale Detection** — บอทที่ `Running` แต่เงียบเกินเวลาที่กำหนด (ปรับได้บนหน้าจอ) จะถูกจับว่า "ค้าง/ไม่ตอบสนอง"
+- **การแจ้งเตือน** — เปิดปุ่ม `Alert` แล้วจะมีเสียง + Browser Notification เมื่อมีบอท **Failed ตัวใหม่**
 - **History Logs** — ตารางประวัติ + ฟิลเตอร์ (Status / ชื่อ Bot / ช่วงวันที่) + Export CSV + Pagination
-- **Analytics** — กราฟแนวโน้ม Success vs Failed 7 วันล่าสุด + อันดับบอทที่พังบ่อย
-- **ธีม Pixel Game UI** — โทน retro arcade (PICO-8), pixel sprites, scanline CRT, สลับ Dark/Light ได้
+- **Analytics** — กราฟแนวโน้ม Success vs Failed 7 วันล่าสุด, อันดับบอทที่พังบ่อย, สรุปรันวันนี้ / Success Rate 7 วัน / จำนวนบอท active
+- **📺 TV Monitor Mode (`tv.html`)** — โหมด Wallboard สำหรับเปิดค้างบนจอ TV: ตัวหนังสือใหญ่อ่านไกล, นาฬิกา+วันที่, KPI แถบใหญ่, แบนเนอร์เตือนกระพริบเมื่อมีบอทพัง, การ์ดจัดเต็มจออัตโนมัติ + หมุนหน้าเองเมื่อบอทเยอะเกินจอ, ซ่อนเคอร์เซอร์อัตโนมัติ — ปรับ threshold ค้างผ่าน URL ได้ เช่น `tv.html?stale=60`
+- **ธีม Dark / Light** — ดีไซน์ professional, จำธีมที่เลือกไว้, ตัวบอกสถานะการเชื่อมต่อ (LIVE/offline) บนแถบบน
 
 ---
 
