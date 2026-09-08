@@ -1,0 +1,59 @@
+// Security Rules ของ Realtime Database
+//
+// เดิม DB เปิดทั้งอ่านและเขียนให้ทุกคน — ใครรู้ URL ก็ยิง REST อ่านหรือลบข้อมูลทิ้งได้
+//
+// แนวคิดของกฎชุดนี้:
+//   • อ่าน  = เปิดให้ทุกคน  -> จอ TV (tv.html) เปิดค้างได้โดยไม่ต้อง login
+//   • เขียน = ต้อง login    -> ปุ่มแก้/ลบบน Dashboard ต้องเข้าสู่ระบบก่อน
+//   • path อื่นที่ไม่ได้ระบุ = ปิดทั้งอ่านและเขียน
+//
+// API (main.py) และ Cloud Functions ใช้ Firebase Admin SDK ซึ่ง bypass rules ทั้งหมด
+// จึงไม่ได้รับผลกระทบใดๆ — บอททุกตัวยิง log ได้เหมือนเดิม ไม่ต้องแก้อะไร
+//
+// อยากล็อกการอ่านด้วย ให้เปลี่ยน .read เป็น "auth != null"
+// แต่ต้องไป login บนจอ TV ก่อน ไม่งั้น wallboard จะขึ้นว่างเปล่า
+//
+// ⚠️ ต้องเปิด Google sign-in + เติม apiKey ใน index.html ให้เรียบร้อยก่อน deploy ไฟล์นี้
+//    (ดูหัวข้อ "ความปลอดภัย" ใน README) มิฉะนั้นปุ่มแก้/ลบจะใช้ไม่ได้
+//
+// Deploy:  cd web-rpa && firebase deploy --only database
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "rpa_live_status": {
+      ".read": true,
+      ".write": "auth != null",
+
+      "$bot_name": {
+        ".validate": "newData.hasChild('status')",
+        "status": { ".validate": "newData.isString()" },
+        "stage": { ".validate": "newData.isString()" },
+        "error_message": { ".validate": "newData.isString()" },
+        "status_datetime": { ".validate": "newData.isString()" },
+        "timeout_at": { ".validate": "newData.isString()" },
+        "$other": { ".validate": false }
+      }
+    },
+
+    "rpa_history_logs": {
+      ".read": true,
+      ".write": "auth != null",
+
+      // index ที่ Dashboard ใช้ query (orderByChild('status_datetime'))
+      // ถ้าลบบรรทัดนี้ออก query จะกลายเป็นดึงทั้ง node มา sort ฝั่ง client
+      ".indexOn": ["status_datetime"],
+
+      "$log_id": {
+        ".validate": "newData.hasChildren(['bot_name', 'status'])",
+        "bot_name": { ".validate": "newData.isString()" },
+        "status": { ".validate": "newData.isString()" },
+        "stage": { ".validate": "newData.isString()" },
+        "error_message": { ".validate": "newData.isString()" },
+        "status_datetime": { ".validate": "newData.isString()" },
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}
