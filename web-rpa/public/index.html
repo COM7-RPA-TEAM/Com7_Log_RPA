@@ -911,9 +911,9 @@
   <script>
     const firebaseConfig = {
       databaseURL: "https://com7-rpa-log-default-rtdb.asia-southeast1.firebasedatabase.app/",
-      // ⚠️ ต้องเติม 2 ค่านี้จาก Firebase Console → Project settings → Your apps (Web app)
-      //    ก่อนถึงจะ login ได้ (ค่าพวกนี้เปิดเผยได้ตามปกติของ Firebase Web SDK)
-      apiKey: "",
+      // ค่าจาก https://com7-rpa-log.web.app/__/firebase/init.json (Firebase Hosting เสิร์ฟค่านี้ออกมาเอง)
+      // apiKey ของ Firebase Web SDK เปิดเผยได้โดยหลักการ — คนคุมสิทธิ์คือ Database Rules ไม่ใช่ตัวนี้
+      apiKey: "AIzaSyCDUe5A8wy8w0R3ry5iYxaRetQb7uu_Vug",
       authDomain: "com7-rpa-log.firebaseapp.com",
     };
     firebase.initializeApp(firebaseConfig);
