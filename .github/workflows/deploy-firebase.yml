@@ -1,0 +1,62 @@
+name: Deploy Firebase Hosting
+
+# ก่อนหน้านี้หน้าเว็บต้อง `firebase deploy` ด้วยมือทุกครั้ง — ถ้าลืมก็จะแก้โค้ดแล้ว
+# ของจริงบนเว็บไม่เปลี่ยน workflow นี้เลย deploy ให้อัตโนมัติเมื่อไฟล์หน้าเว็บถูกแก้
+#
+# ⚠️ ตั้งใจ deploy เฉพาะ Hosting เท่านั้น
+#    Cloud Functions และ Database Rules ยัง deploy ด้วยมือ เพราะมีผลกระทบสูง
+#    (ลบข้อมูล / ตัดสิทธิ์เข้าถึง) ควรมีคนกดเองหลังตรวจแล้ว:
+#      cd web-rpa && firebase deploy --only functions
+#      cd web-rpa && firebase deploy --only database
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web-rpa/public/**"
+      - "web-rpa/firebase.json"
+      - ".github/workflows/deploy-firebase.yml"
+  workflow_dispatch: {} # กด "Run workflow" เองได้จากแท็บ Actions
+
+concurrency:
+  group: firebase-hosting-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # ต้องตั้ง Secret ชื่อ FIREBASE_SERVICE_ACCOUNT ไว้ก่อน (ดูวิธีใน README)
+      # เนื้อหาคือ JSON ของ service account ที่มีสิทธิ์ Firebase Hosting Admin
+      - name: Write service account key
+        env:
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SA_JSON" ]; then
+            echo "::error::ยังไม่ได้ตั้ง secret FIREBASE_SERVICE_ACCOUNT — ดูวิธีตั้งค่าใน README"
+            exit 1
+          fi
+          printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
+
+      - name: Deploy to Firebase Hosting
+        working-directory: web-rpa
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: |
+          npx --yes firebase-tools@13 deploy \
+            --only hosting \
+            --project com7-rpa-log \
+            --non-interactive \
+            --message "${{ github.sha }} by ${{ github.actor }}"
+
+      - name: Cleanup
+        if: always()
+        run: rm -f "$RUNNER_TEMP/sa.json"
