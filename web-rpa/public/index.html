@@ -342,6 +342,27 @@
       font-size: .85rem;
     }
 
+    .unknown-note {
+      display: flex;
+      align-items: flex-start;
+      gap: .55rem;
+      padding: .7rem .95rem;
+      margin-bottom: 1.1rem;
+      border-radius: 10px;
+      border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+      background: color-mix(in srgb, var(--warning) 7%, var(--surface));
+      color: var(--warning-text);
+      font-size: .82rem;
+      line-height: 1.6;
+    }
+
+    .unknown-note code {
+      background: color-mix(in srgb, var(--warning) 16%, transparent);
+      padding: .05rem .35rem;
+      border-radius: 5px;
+      color: inherit;
+    }
+
     /* ============ STATUS CHIP ============ */
     .chip {
       display: inline-flex;
@@ -692,6 +713,7 @@
         <span class="conn" id="connBadge"><span class="dot"></span><span id="connText">connecting…</span></span>
         <button class="btn-ghost" id="notifyToggle" title="แจ้งเตือนเมื่อมีบอท Failed ใหม่"><i class="fa-regular fa-bell"></i> <span>Alert: OFF</span></button>
         <a class="btn-ghost" href="tv.html" title="โหมดจอ TV / Wallboard"><i class="fa-solid fa-tv"></i> TV Mode</a>
+        <button class="btn-ghost" id="authBtn" title="ต้องเข้าสู่ระบบก่อนจึงจะแก้/ลบสถานะได้"><i class="fa-solid fa-right-to-bracket"></i> <span id="authLabel">เข้าสู่ระบบ</span></button>
         <button class="btn-ghost" id="themeToggle"><i class="fa-solid fa-sun"></i></button>
       </div>
     </div>
@@ -724,6 +746,7 @@
       </div>
 
       <div class="alert-strip" id="alert-container"></div>
+      <div class="unknown-note" id="unknownStatusNote" hidden></div>
 
       <div class="toolbar">
         <div class="search">
@@ -751,7 +774,7 @@
     <section id="tab-history" hidden>
       <div class="panel panel-pad">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-          <div class="section-title mb-0"><i class="fa-solid fa-clock-rotate-left me-1"></i> ประวัติการรัน (1,000 รายการล่าสุด)</div>
+          <div class="section-title mb-0"><i class="fa-solid fa-clock-rotate-left me-1"></i> ประวัติการรัน (10,000 รายการล่าสุด)</div>
           <button class="btn-ghost" id="btnExportCsv"><i class="fa-solid fa-file-csv me-1"></i> Export CSV</button>
         </div>
 
@@ -791,7 +814,11 @@
                 <th>Error Message</th>
               </tr>
             </thead>
-            <tbody id="history-container"></tbody>
+            <tbody id="history-container">
+              <tr><td colspan="5" class="text-center py-4" style="color:var(--muted)">
+                <i class="fa-solid fa-circle-notch fa-spin me-1"></i> กำลังโหลดประวัติ…
+              </td></tr>
+            </tbody>
           </table>
         </div>
 
@@ -878,10 +905,21 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
+  <!-- ตรรกะที่ใช้ร่วมกับ tv.html (normalize status / stale / เรียงลำดับ / escape) -->
+  <script src="rpa-common.js"></script>
+
   <script>
-    const firebaseConfig = { databaseURL: "https://com7-rpa-log-default-rtdb.asia-southeast1.firebasedatabase.app/" };
+    const firebaseConfig = {
+      databaseURL: "https://com7-rpa-log-default-rtdb.asia-southeast1.firebasedatabase.app/",
+      // ⚠️ ต้องเติม 2 ค่านี้จาก Firebase Console → Project settings → Your apps (Web app)
+      //    ก่อนถึงจะ login ได้ (ค่าพวกนี้เปิดเผยได้ตามปกติของ Firebase Web SDK)
+      apiKey: "",
+      authDomain: "com7-rpa-log.firebaseapp.com",
+    };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    // Auth SDK ถูกโหลดแบบ on-demand (ดูบล็อก AUTH ด้านล่าง) ไม่ได้ใส่เป็น <script> ถาวร
+    const authReady = !!firebaseConfig.apiKey;
 
     /* ============ STATE ============ */
     let latestLiveData = null;
@@ -897,56 +935,15 @@
     let editModalInstance = null;
     let notifyEnabled = localStorage.getItem('rpa_notify') === '1';
     let prevFailedSet = null;        // ไว้ตรวจว่ามี Failed "ตัวใหม่" เพื่อแจ้งเตือน
+    let todayData = [];              // log ของ 'วันนี้' ครบทั้งวัน (คนละ query กับตาราง History)
 
     document.addEventListener("DOMContentLoaded", () => {
       editModalInstance = new bootstrap.Modal(document.getElementById('editModal'));
     });
 
-    /* ============ HELPERS ============ */
-    function parseDateTime(s) {
-      if (!s) return null;
-      const d = new Date(String(s).replace(' ', 'T'));
-      return isNaN(d.getTime()) ? null : d;
-    }
-
-    function timeAgo(s) {
-      const d = parseDateTime(s);
-      if (!d) return s || '-';
-      let diff = (Date.now() - d.getTime()) / 1000;
-      if (diff < 0) diff = 0;
-      if (diff < 60) return 'เมื่อสักครู่';
-      if (diff < 3600) return Math.floor(diff / 60) + ' นาทีที่แล้ว';
-      if (diff < 86400) return Math.floor(diff / 3600) + ' ชม.ที่แล้ว';
-      return Math.floor(diff / 86400) + ' วันที่แล้ว';
-    }
-
-    // รวม status หลายรูปแบบจากแต่ละระบบให้เป็นมาตรฐานเดียว
-    function normalizeStatus(raw) {
-      const s = String(raw || '').trim().toLowerCase();
-      if (['success', 'completed', 'complete', 'done', 'ok', 'passed', 'finish', 'finished'].includes(s)) return 'Success';
-      if (['failed', 'fail', 'error', 'exception', 'crash'].includes(s)) return 'Failed';
-      if (['running', 'start', 'started', 'in progress', 'processing', 'busy', 'pending'].includes(s)) return 'Running';
-      return raw || 'Unknown';
-    }
-
-    // สถานะ "ตามจริง": Running ที่เงียบเกิน threshold = Stale (ค้าง)
-    function getEffectiveStatus(info) {
-      if (!info) return 'Unknown';
-      const norm = normalizeStatus(info.status);
-      if (norm === 'Running') {
-        const d = parseDateTime(info.status_datetime);
-        if (d && (Date.now() - d.getTime()) > staleThresholdMin * 60000) return 'Stale';
-      }
-      return norm;
-    }
-
-    const STATUS_META = {
-      Running: { icon: 'fa-spinner fa-spin', label: 'Running' },
-      Success: { icon: 'fa-circle-check', label: 'Success' },
-      Failed: { icon: 'fa-circle-xmark', label: 'Failed' },
-      Stale: { icon: 'fa-plug-circle-exclamation', label: 'ค้าง' },
-      Unknown: { icon: 'fa-circle-question', label: 'Unknown' }
-    };
+    /* ============ HELPERS เฉพาะหน้านี้ ============ */
+    // ตัวช่วยชุดกลาง (parseDateTime / timeAgo / normalizeStatus / getEffectiveStatus /
+    // localDateKey / esc / STATUS_META / STATE_ORDER / sortBots) อยู่ใน rpa-common.js
 
     function chip(eff) {
       const m = STATUS_META[eff] || STATUS_META.Unknown;
@@ -954,22 +951,8 @@
       return `<span class="chip s-${cls}"><i class="fa-solid ${m.icon}"></i> ${m.label}</span>`;
     }
 
-    function esc(s) {
-      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
-
-    // จัดลำดับ: Failed → Stale → Running → Success (ตัวมีปัญหาขึ้นก่อนเสมอ)
-    const STATE_ORDER = { Failed: 0, Stale: 1, Running: 2, Success: 3 };
     function getSortedBots() {
-      if (!latestLiveData) return [];
-      return Object.keys(latestLiveData).map(botName => {
-        const info = latestLiveData[botName];
-        return { botName, info, eff: getEffectiveStatus(info) };
-      }).sort((a, b) => {
-        const oa = STATE_ORDER[a.eff] ?? 9, ob = STATE_ORDER[b.eff] ?? 9;
-        if (oa !== ob) return oa - ob;
-        return (b.info.status_datetime || '').localeCompare(a.info.status_datetime || '');
-      });
+      return sortBots(latestLiveData, staleThresholdMin);
     }
 
     /* ============ KPI + ALERT ============ */
@@ -987,15 +970,12 @@
       document.getElementById('kpi-stale').textContent = st;
       document.querySelector('.kpi.f-failed').classList.toggle('pulse-failed', f > 0);
 
-      // Success Rate วันนี้ จาก history (เฉพาะ Success/Failed)
-      const todayStr = localDateKey(new Date());
+      // Success Rate วันนี้ — อ่านจาก todayData ที่ query ตามวันที่มาโดยเฉพาะ จึงครบทั้งวันเสมอ
       let okT = 0, failT = 0;
-      historyData.forEach(log => {
-        if ((log.status_datetime || '').startsWith(todayStr)) {
-          const ns = normalizeStatus(log.status);
-          if (ns === 'Success') okT++;
-          else if (ns === 'Failed') failT++;
-        }
+      todayData.forEach(log => {
+        const ns = normalizeStatus(log.status);
+        if (ns === 'Success') okT++;
+        else if (ns === 'Failed') failT++;
       });
       const denom = okT + failT;
       document.getElementById('kpi-rate').textContent = denom ? Math.round(okT / denom * 100) + '%' : '—';
@@ -1029,6 +1009,33 @@
       box.innerHTML = html;
     }
 
+    /* ============ เตือนเมื่อเจอ status ที่ระบบยังไม่รู้จัก ============ */
+    // แต่ละระบบส่งคำไม่เหมือนกัน (Running / RUNNING / STARTED / ERROR ...) ซึ่ง normalizeStatus
+    // รองรับไว้แล้ว แต่ถ้าทีมไหนส่งคำใหม่เข้ามา มันจะกลายเป็น Unknown เงียบๆ
+    // ไม่ถูกนับใน KPI และไม่มีใครรู้ — แถบนี้เลยคอยจับให้เห็น
+    function renderUnknownStatusNote() {
+      const box = document.getElementById('unknownStatusNote');
+      const found = new Map();   // คำดิบ -> ตัวอย่างชื่อบอทที่ส่งมา
+
+      Object.entries(latestLiveData || {}).forEach(([botName, info]) => {
+        const raw = String((info && info.status) || '').trim();
+        if (raw && !isKnownStatus(raw)) found.set(raw, botName);
+      });
+      todayData.forEach(log => {
+        const raw = String(log.status || '').trim();
+        if (raw && !isKnownStatus(raw) && !found.has(raw)) found.set(raw, log.bot_name);
+      });
+
+      if (!found.size) { box.hidden = true; return; }
+      box.hidden = false;
+      box.innerHTML =
+        '<i class="fa-solid fa-circle-question mt-1"></i><div>' +
+        '<b>พบสถานะที่ระบบยังไม่รู้จัก</b> — ' +
+        [...found].map(([raw, bot]) => `<code>${esc(raw)}</code> จาก ${esc(bot)}`).join(', ') +
+        '<br>สถานะพวกนี้จะแสดงเป็น Unknown และ<b>ไม่ถูกนับใน Success Rate</b> ' +
+        'ถ้าถูกต้องอยู่แล้วให้เพิ่มคำลงใน <code>RPA_STATUS_WORDS</code> ที่ <code>rpa-common.js</code></div>';
+    }
+
     /* ============ LIVE DASHBOARD ============ */
     function renderLiveDashboard() {
       const botContainer = document.getElementById('bot-container');
@@ -1036,6 +1043,7 @@
 
       renderKPIs(bots);
       renderAlertPanel(bots);
+      renderUnknownStatusNote();
       checkNewFailures(bots);
 
       if (bots.length === 0) {
@@ -1301,21 +1309,38 @@
       renderHistoryTable();
     });
 
-    db.ref('rpa_history_logs').orderByChild('status_datetime').limitToLast(1000).on('value', (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        historyData = Object.values(data).sort((a, b) =>
-          (b.status_datetime || '').localeCompare(a.status_datetime || ''));
-        renderHistoryTable();
-        renderLiveDashboard();   // KPI Success Rate อิง history
-        renderAnalytics();
-      }
+    db.ref('rpa_history_logs').orderByChild('status_datetime').limitToLast(10000).on('value', (snapshot) => {
+      // ไม่ใส่ if (data) เพราะถ้า DB ว่าง ตารางจะค้างอยู่ที่ 'กำลังโหลด…' ตลอดไป
+      historyData = sortLogsDesc(Object.values(snapshot.val() || {}));
+      renderHistoryTable();
+      renderAnalytics();         // KPI ฝั่ง Live ไม่ได้อิง historyData แล้ว (ย้ายไปใช้ todayData)
     });
 
-    /* ============ ANALYTICS ============ */
-    function localDateKey(d) {
-      return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    /* ---- KPI "วันนี้": query ตามวันที่ ไม่ใช่ตามจำนวน record ----
+       ตาราง History ใช้ limitToLast(N) ซึ่งครอบคลุมไม่ถึงทั้งวันในวันที่บอทยิง log เยอะ
+       (เคยเจอวันละ ~4,500 รายการ) ถ้าเอา KPI ไปอิงหน้าต่างนั้น Success Rate จะเพี้ยนแบบเงียบๆ
+       จึงแยก listener ของ 'วันนี้' ออกมาต่างหาก — ได้ครบทั้งวันเสมอ และข้อมูลเบากว่าด้วย */
+    let todayQuery = null;
+    let todayKeyStr = '';
+
+    function subscribeToday() {
+      if (todayQuery) todayQuery.off();
+      todayKeyStr = localDateKey(new Date());
+      todayQuery = db.ref('rpa_history_logs').orderByChild('status_datetime')
+        .startAt(todayKeyStr).endAt(todayKeyStr + '\uf8ff');
+      todayQuery.on('value', (snapshot) => {
+        todayData = Object.values(snapshot.val() || {});
+        renderLiveDashboard();
+      });
     }
+    subscribeToday();
+
+    // เปิดหน้าจอค้างข้ามคืน -> ย้าย listener ไปวันใหม่ให้เอง
+    setInterval(() => {
+      if (localDateKey(new Date()) !== todayKeyStr) subscribeToday();
+    }, 60000);
+
+    /* ============ ANALYTICS ============ */
 
     function lastNDays(n) {
       const days = [];
@@ -1478,10 +1503,94 @@
     tickClock();
     setInterval(tickClock, 1000);
 
+    /* ============ AUTH (ใช้เฉพาะตอนแก้/ลบ) ============ */
+    // Database Rules ตั้งไว้ว่า อ่าน = เปิดให้ทุกคน / เขียน = ต้อง login
+    // จอ TV และคนที่แค่มาดูจึงไม่ต้อง login — ล็อกเฉพาะคนที่จะแก้ข้อมูล
+    // (API กับ Cloud Functions ใช้ Admin SDK ซึ่ง bypass rules อยู่แล้ว ไม่กระทบ)
+    //
+    // Firebase Auth v8 จะ initialize ตัวเองทันทีที่สคริปต์ถูกโหลด ถ้า apiKey ว่างมันจะ throw
+    // และทำให้ทั้งหน้าตาย -> จึงโหลด SDK เฉพาะตอนที่ตั้งค่า apiKey ไว้แล้วเท่านั้น
+    let auth = null;
+    let currentUser = null;
+
+    function loadAuthSdk() {
+      return new Promise((resolve, reject) => {
+        const el = document.createElement('script');
+        el.src = 'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js';
+        el.onload = resolve;
+        el.onerror = () => reject(new Error('โหลด Firebase Auth SDK ไม่สำเร็จ'));
+        document.head.appendChild(el);
+      });
+    }
+
+    async function initAuth() {
+      await loadAuthSdk();
+      auth = firebase.auth();
+      auth.onAuthStateChanged(user => {
+        currentUser = user;
+        const label = document.getElementById('authLabel');
+        const btn = document.getElementById('authBtn');
+        if (user) {
+          label.textContent = (user.email || 'ออกจากระบบ').split('@')[0];
+          btn.title = `เข้าสู่ระบบเป็น ${user.email} — คลิกเพื่อออกจากระบบ`;
+          btn.querySelector('i').className = 'fa-solid fa-right-from-bracket';
+        } else {
+          label.textContent = 'เข้าสู่ระบบ';
+          btn.title = 'ต้องเข้าสู่ระบบก่อนจึงจะแก้/ลบสถานะได้';
+          btn.querySelector('i').className = 'fa-solid fa-right-to-bracket';
+        }
+      });
+    }
+
+    // ยังไม่ได้ตั้งค่า apiKey -> ซ่อนปุ่ม และปล่อยให้แก้/ลบได้เหมือนเดิม
+    // (จะเริ่มบังคับ login ก็ต่อเมื่อเติม apiKey + deploy database rules แล้ว)
+    if (!authReady) document.getElementById('authBtn').hidden = true;
+    const authInit = authReady ? initAuth() : Promise.resolve();
+
+    document.getElementById('authBtn').addEventListener('click', async () => {
+      if (!authReady) return;
+      await authInit;
+      if (currentUser) auth.signOut();
+      else signIn();
+    });
+
+    async function signIn() {
+      if (!authReady) return false;
+      try {
+        await authInit;
+        await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+        return true;
+      } catch (err) {
+        if (err && err.code === 'auth/popup-closed-by-user') return false;
+        alert('เข้าสู่ระบบไม่สำเร็จ: ' + (err && err.message ? err.message : err) +
+          ' — ถ้าเพิ่งตั้งค่าใหม่ ให้ตรวจว่าเติม apiKey ใน firebaseConfig แล้ว และเปิด Google sign-in ใน Firebase Console');
+        return false;
+      }
+    }
+
+    /** เรียกก่อนทุกครั้งที่จะเขียน DB — ถ้ายังไม่ login จะเด้ง popup ให้ login ก่อน */
+    async function requireAuth() {
+      if (!authReady) return true;   // ยังไม่เปิดใช้ Auth -> ทำงานเหมือนเดิม ไม่บล็อกใคร
+      await authInit;
+      if (currentUser) return true;
+      return await signIn();
+    }
+
+    /** ข้อความ error ที่อ่านรู้เรื่องเมื่อโดน rules ปฏิเสธ */
+    function writeError(err) {
+      const msg = String((err && err.message) || err);
+      if (msg.toUpperCase().includes('PERMISSION_DENIED')) {
+        alert('ไม่มีสิทธิ์เขียนข้อมูล — กรุณาเข้าสู่ระบบใหม่อีกครั้ง');
+      } else {
+        alert('Error: ' + msg);
+      }
+    }
+
     /* ============ EDIT / DELETE ============ */
-    window.openEditModal = function (botName) {
+    window.openEditModal = async function (botName) {
       const info = latestLiveData[botName];
       if (!info) return;
+      if (!await requireAuth()) return;
       document.getElementById('editBotName').value = botName;
       document.getElementById('editStatus').value = normalizeStatus(info.status) === 'Unknown' ? 'Running' : normalizeStatus(info.status);
       document.getElementById('editStage').value = info.stage || '';
@@ -1489,7 +1598,8 @@
       editModalInstance.show();
     };
 
-    window.saveBotEdit = function () {
+    window.saveBotEdit = async function () {
+      if (!await requireAuth()) return;
       const botName = document.getElementById('editBotName').value;
       const now = new Date();
       const p = n => String(n).padStart(2, '0');
@@ -1504,13 +1614,13 @@
         editModalInstance.hide();
         updateData.bot_name = botName + " (Manual Edit)";
         db.ref('rpa_history_logs').push(updateData);
-      }).catch(err => alert("Error: " + err));
+      }).catch(writeError);
     };
 
-    window.deleteBot = function (botName) {
-      if (confirm(`⚠️ ลบสถานะของ "${botName}" ออกจาก Live Dashboard?\n(ประวัติใน History ยังอยู่ครบ)`)) {
-        db.ref('rpa_live_status/' + botName).remove();
-      }
+    window.deleteBot = async function (botName) {
+      if (!confirm(`⚠️ ลบสถานะของ "${botName}" ออกจาก Live Dashboard?\n(ประวัติใน History ยังอยู่ครบ)`)) return;
+      if (!await requireAuth()) return;
+      db.ref('rpa_live_status/' + botName).remove().catch(writeError);
     };
   </script>
 </body>

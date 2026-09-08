@@ -274,6 +274,76 @@
       white-space: nowrap;
     }
 
+    /* ============ ACTIVITY FEED (ประวัติล่าสุด) ============ */
+    .tv-body {
+      flex: 1;
+      display: flex;
+      gap: 1vw;
+      min-height: 0;
+    }
+
+    .tv-feed {
+      flex: 0 0 24vw;
+      min-width: 260px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: .9vw;
+      padding: .9vw 1vw;
+      display: flex;
+      flex-direction: column;
+      gap: .6vw;
+      min-height: 0;
+    }
+
+    .tv-feed .head {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: .6vw;
+      font-size: 1.05vw;
+      font-weight: 700;
+      color: var(--ink-2);
+    }
+
+    .tv-feed .head .cnt { font-size: .85vw; font-weight: 500; color: var(--muted); white-space: nowrap; }
+
+    .tv-feed .list {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: .35vw;
+      overflow: hidden;
+    }
+
+    .feed-row {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: .6vw;
+      padding: .38vw .6vw;
+      border-radius: .45vw;
+      border-left: .28vw solid var(--muted);
+      background: var(--surface-2);
+      min-width: 0;
+    }
+
+    .feed-row.s-Running { border-left-color: var(--running); }
+    .feed-row.s-Success { border-left-color: var(--good); }
+    .feed-row.s-Failed { border-left-color: var(--critical); background: color-mix(in srgb, var(--critical) 14%, var(--surface-2)); }
+
+    .feed-row .ft { font-size: .85vw; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .feed-row .fn { font-size: .95vw; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .feed-row .fs { font-size: .85vw; font-weight: 700; white-space: nowrap; color: var(--muted); }
+    .feed-row.s-Running .fs { color: #9cc5f5; }
+    .feed-row.s-Success .fs { color: var(--good-text); }
+    .feed-row.s-Failed .fs { color: var(--critical-text); }
+
+    .tv-feed .empty { color: var(--muted); font-size: .95vw; text-align: center; padding: 1vw 0; }
+
+    /* จอแคบ (เปิดพรีวิวบนโน้ตบุ๊ค/มือถือ) ซ่อน feed ไม่ให้เบียดการ์ด */
+    @media (max-width: 900px) { .tv-feed { display: none; } }
+
     /* ============ FOOTER ============ */
     .tv-foot {
       flex: 0 0 auto;
@@ -344,7 +414,18 @@
   </div>
 
   <!-- BOT GRID -->
-  <div class="tv-grid" id="tvGrid"></div>
+  <div class="tv-body">
+    <div class="tv-grid" id="tvGrid"></div>
+
+    <!-- ประวัติล่าสุด: ไหลแบบ real-time ให้เห็นว่าบอทไหนเพิ่งทำอะไรไป -->
+    <aside class="tv-feed">
+      <div class="head">
+        <span><i class="fa-solid fa-clock-rotate-left"></i> ประวัติล่าสุด</span>
+        <span class="cnt" id="feedCount"></span>
+      </div>
+      <div class="list" id="tvFeed"></div>
+    </aside>
+  </div>
 
   <!-- FOOTER -->
   <div class="tv-foot">
@@ -356,6 +437,9 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
+  <!-- ตรรกะที่ใช้ร่วมกับ index.html -->
+  <script src="rpa-common.js"></script>
+
   <script>
     const firebaseConfig = { databaseURL: "https://com7-rpa-log-default-rtdb.asia-southeast1.firebasedatabase.app/" };
     firebase.initializeApp(firebaseConfig);
@@ -363,6 +447,7 @@
 
     let latestLiveData = null;
     let historyData = [];
+    let todayData = [];           // log ของ 'วันนี้' ครบทั้งวัน (ใช้กับ KPI + ตัวนับใน feed)
     let staleThresholdMin = 30;   // ปรับผ่าน query string ได้: tv.html?stale=60
     let tvPage = 0;               // หน้าปัจจุบัน (auto-rotate เมื่อบอทเยอะเกินจอ)
     const PAGE_ROTATE_SEC = 12;
@@ -370,55 +455,7 @@
     const qs = new URLSearchParams(location.search);
     if (qs.get('stale')) staleThresholdMin = parseInt(qs.get('stale')) || 30;
 
-    /* ---------- helpers (ชุดเดียวกับ index.html) ---------- */
-    function parseDateTime(s) {
-      if (!s) return null;
-      const d = new Date(String(s).replace(' ', 'T'));
-      return isNaN(d.getTime()) ? null : d;
-    }
-
-    function timeAgo(s) {
-      const d = parseDateTime(s);
-      if (!d) return s || '-';
-      let diff = (Date.now() - d.getTime()) / 1000;
-      if (diff < 0) diff = 0;
-      if (diff < 60) return 'เมื่อสักครู่';
-      if (diff < 3600) return Math.floor(diff / 60) + ' นาทีที่แล้ว';
-      if (diff < 86400) return Math.floor(diff / 3600) + ' ชม.ที่แล้ว';
-      return Math.floor(diff / 86400) + ' วันที่แล้ว';
-    }
-
-    function normalizeStatus(raw) {
-      const s = String(raw || '').trim().toLowerCase();
-      if (['success', 'completed', 'complete', 'done', 'ok', 'passed', 'finish', 'finished'].includes(s)) return 'Success';
-      if (['failed', 'fail', 'error', 'exception', 'crash'].includes(s)) return 'Failed';
-      if (['running', 'start', 'started', 'in progress', 'processing', 'busy', 'pending'].includes(s)) return 'Running';
-      return raw || 'Unknown';
-    }
-
-    function getEffectiveStatus(info) {
-      if (!info) return 'Unknown';
-      const norm = normalizeStatus(info.status);
-      if (norm === 'Running') {
-        const d = parseDateTime(info.status_datetime);
-        if (d && (Date.now() - d.getTime()) > staleThresholdMin * 60000) return 'Stale';
-      }
-      return norm;
-    }
-
-    function esc(s) {
-      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
-
-    const STATE_ORDER = { Failed: 0, Stale: 1, Running: 2, Success: 3 };
-    const STATUS_META = {
-      Running: { icon: 'fa-spinner fa-spin', label: 'Running' },
-      Success: { icon: 'fa-circle-check', label: 'Success' },
-      Failed: { icon: 'fa-circle-xmark', label: 'Failed' },
-      Stale: { icon: 'fa-plug-circle-exclamation', label: 'ค้าง' },
-      Unknown: { icon: 'fa-circle-question', label: 'Unknown' }
-    };
-
+    /* ---------- helpers เฉพาะหน้านี้ (ชุดกลางอยู่ใน rpa-common.js) ---------- */
     function tvChip(eff) {
       const m = STATUS_META[eff] || STATUS_META.Unknown;
       const cls = STATUS_META[eff] ? eff : 'Unknown';
@@ -426,17 +463,8 @@
     }
 
     function getSortedBots() {
-      if (!latestLiveData) return [];
-      return Object.keys(latestLiveData).map(botName => {
-        const info = latestLiveData[botName];
-        return { botName, info, eff: getEffectiveStatus(info) };
-      }).sort((a, b) => {
-        const oa = STATE_ORDER[a.eff] ?? 9, ob = STATE_ORDER[b.eff] ?? 9;
-        if (oa !== ob) return oa - ob;
-        return (b.info.status_datetime || '').localeCompare(a.info.status_datetime || '');
-      });
+      return sortBots(latestLiveData, staleThresholdMin);
     }
-
     /* ---------- คำนวณจำนวนการ์ดที่พอดีจอ (auto-fit + auto-rotate) ---------- */
     function gridCapacity() {
       const grid = document.getElementById('tvGrid');
@@ -448,6 +476,42 @@
       const cols = Math.max(1, Math.floor((W + gap) / (cardW + gap)));
       const rows = Math.max(1, Math.floor((H + gap) / (cardH + gap)));
       return { cols, perPage: cols * rows };
+    }
+
+    /* ---------- ประวัติล่าสุด: แสดงเท่าที่พอดีความสูงของ panel ---------- */
+    function feedCapacity() {
+      const list = document.getElementById('tvFeed');
+      const rowH = Math.max(26, 1.95 * (window.innerWidth / 100));   // ความสูงต่อแถว + gap
+      return Math.max(4, Math.floor(list.clientHeight / rowH));
+    }
+
+    function renderFeed() {
+      const list = document.getElementById('tvFeed');
+      const cnt = document.getElementById('feedCount');
+      if (!historyData.length) {
+        list.innerHTML = '<div class="empty">ยังไม่มีประวัติ</div>';
+        cnt.textContent = '';
+        return;
+      }
+
+      list.innerHTML = historyData.slice(0, feedCapacity()).map(log => {
+        const ns = normalizeStatus(log.status);
+        const cls = STATUS_META[ns] ? ns : 'Unknown';
+        const label = (STATUS_META[ns] || STATUS_META.Unknown).label;
+        return `
+          <div class="feed-row s-${cls}">
+            <span class="ft">${esc(String(log.status_datetime || '').slice(11, 19)) || '--:--:--'}</span>
+            <span class="fn" title="${esc(log.bot_name)}">${esc(log.bot_name)}</span>
+            <span class="fs">${label}</span>
+          </div>`;
+      }).join('');
+
+      // ตัดแถวสุดท้ายทิ้งถ้าล้นขอบ panel (กันแถวโดนตัดครึ่งบนจอ TV)
+      while (list.scrollHeight > list.clientHeight && list.children.length > 1) {
+        list.removeChild(list.lastElementChild);
+      }
+
+      cnt.textContent = `วันนี้ ${todayData.length.toLocaleString()} รายการ`;
     }
 
     /* ---------- RENDER ---------- */
@@ -469,16 +533,12 @@
       document.getElementById('kpiFailed').classList.toggle('hot', f > 0);
       document.getElementById('kpiStale').classList.toggle('hot', st > 0);
 
-      // Success rate วันนี้
-      const now = new Date();
-      const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+      // Success rate วันนี้ — อ่านจาก todayData ที่ query ตามวันที่มาโดยเฉพาะ จึงครบทั้งวันเสมอ
       let okT = 0, failT = 0;
-      historyData.forEach(log => {
-        if ((log.status_datetime || '').startsWith(todayStr)) {
-          const ns = normalizeStatus(log.status);
-          if (ns === 'Success') okT++;
-          else if (ns === 'Failed') failT++;
-        }
+      todayData.forEach(log => {
+        const ns = normalizeStatus(log.status);
+        if (ns === 'Success') okT++;
+        else if (ns === 'Failed') failT++;
       });
       const denom = okT + failT;
       document.getElementById('k-rate').textContent = denom ? Math.round(okT / denom * 100) + '%' : '—';
@@ -534,14 +594,40 @@
       document.getElementById('footInfo').textContent =
         `COM7-RPA-TEAM · ${bots.length} บอท` + (totalPages > 1 ? ` · หน้า ${tvPage + 1}/${totalPages}` : '');
       document.getElementById('footUpdate').textContent = 'อัปเดตล่าสุด ' + new Date().toLocaleTimeString('th-TH');
+
+      renderFeed();
     }
 
     /* ---------- DATA ---------- */
     db.ref('rpa_live_status').on('value', (snap) => { latestLiveData = snap.val(); render(); });
     db.ref('rpa_history_logs').orderByChild('status_datetime').limitToLast(500).on('value', (snap) => {
       const data = snap.val();
-      if (data) { historyData = Object.values(data); render(); }
+      if (data) {
+        historyData = sortLogsDesc(Object.values(data));
+        render();
+      }
     });
+
+    /* KPI "วันนี้" แยก query ตามวันที่ ไม่ให้ขึ้นกับจำนวน record ที่ดึงมาแสดง feed */
+    let todayQuery = null;
+    let todayKeyStr = '';
+
+    function subscribeToday() {
+      if (todayQuery) todayQuery.off();
+      todayKeyStr = todayKey();
+      todayQuery = db.ref('rpa_history_logs').orderByChild('status_datetime')
+        .startAt(todayKeyStr).endAt(todayKeyStr + '\uf8ff');
+      todayQuery.on('value', (snap) => {
+        todayData = Object.values(snap.val() || {});
+        render();
+      });
+    }
+    subscribeToday();
+
+    // จอ TV เปิดค้าง 24 ชม. -> ข้ามวันแล้วย้าย listener ไปวันใหม่ให้เอง
+    setInterval(() => {
+      if (todayKey() !== todayKeyStr) subscribeToday();
+    }, 60000);
 
     db.ref('.info/connected').on('value', (snap) => {
       const on = snap.val() === true;
