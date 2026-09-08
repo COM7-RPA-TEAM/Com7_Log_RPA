@@ -282,8 +282,11 @@ firebase serve --only hosting
 4. ใส่เป็น secret:
 
 ```bash
-gh secret set FIREBASE_SERVICE_ACCOUNT --repo COM7-RPA-TEAM/Com7_Log_RPA < "C:\path\to\key.json"
+gh secret set FIREBASE_SERVICE_ACCOUNT --repo COM7-RPA-TEAM/Com7_Log_RPA --body (Get-Content "C:\path\to\key.json" -Raw)
 ```
+
+> ⚠️ **อย่าใช้** `gh secret set ... < file` บน Windows PowerShell 5.1 — มันไม่รองรับ `<` (input redirection)
+> secret จะถูกสร้างขึ้นมาโดยมีค่าว่าง แล้ว workflow จะ fail ว่า "ยังไม่ได้ตั้ง secret" ทั้งที่ `gh secret list` เห็นว่ามี
 
 #### ทาง B: FIREBASE_TOKEN (ตั้งง่ายกว่า)
 
@@ -294,10 +297,14 @@ firebase login:ci
 ```
 
 ```bash
-gh secret set FIREBASE_TOKEN --repo COM7-RPA-TEAM/Com7_Log_RPA
+$t = Read-Host "วาง FIREBASE_TOKEN"; gh secret set FIREBASE_TOKEN --repo COM7-RPA-TEAM/Com7_Log_RPA --body $t.Trim(); Remove-Variable t
 ```
 
-> คำสั่งที่สองจะรอให้วาง token ที่ได้จากคำสั่งแรก แล้วกด Enter + Ctrl+Z + Enter
+`Read-Host` ทำให้ token ไม่ถูกบันทึกลง command history · `--body` แทนการ pipe เพราะ PowerShell จะแถม newline
+ต่อท้ายซึ่งทำให้ token ใช้ไม่ได้ · `.Trim()` ตัดช่องว่างที่ติดมาจากการ copy
+
+> ❌ **อย่าตั้งแบบ interactive** (`gh secret set FIREBASE_TOKEN` เปล่าๆ แล้ววาง + Ctrl+Z)
+> วิธีนั้นสร้าง secret ที่มีค่าว่าง — เคยพลาดมาแล้ว หาสาเหตุยากเพราะ `gh secret list` แสดงว่ามี secret อยู่
 > **อย่าวาง token ลงในแชทหรือ commit ลง git**
 
 workflow รองรับทั้งสองแบบ — ถ้ามี `FIREBASE_SERVICE_ACCOUNT` จะใช้ตัวนั้นก่อน ไม่มีจึงใช้ `FIREBASE_TOKEN`
