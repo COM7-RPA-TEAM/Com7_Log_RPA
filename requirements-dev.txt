@@ -1,0 +1,6 @@
+# สำหรับรันเทสในเครื่อง (ไม่ต้องติดตั้งบน Cloud Run)
+#   python -m venv .venv
+#   .venv\Scripts\python -m pip install -r requirements.txt -r requirements-dev.txt
+#   .venv\Scripts\python -m pytest -q
+pytest
+httpx          # TestClient ของ FastAPI ต้องใช้

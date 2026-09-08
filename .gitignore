@@ -10,3 +10,6 @@ build/
 dist/
 .vscode/
 .idea/
+.pytest_cache/
+firebase-debug.log
+.firebase/
