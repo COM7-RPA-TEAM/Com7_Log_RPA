@@ -270,14 +270,38 @@ firebase serve --only hosting
 [`.github/workflows/deploy-firebase.yml`](.github/workflows/deploy-firebase.yml) จะ deploy Hosting ให้อัตโนมัติ
 เมื่อมีการ push เข้า `main` ที่แตะไฟล์ใน `web-rpa/public/**`
 
-**ต้องตั้งค่าครั้งเดียวก่อนใช้งาน:**
+**ต้องตั้ง secret ครั้งเดียวก่อนใช้งาน** — เลือกทางใดทางหนึ่ง
 
-1. Google Cloud Console → IAM & Admin → Service Accounts → สร้าง service account
-2. ให้สิทธิ์ **Firebase Hosting Admin** + **Firebase Authentication Viewer** (หรือใช้ role `Firebase Admin`)
-3. สร้าง key แบบ JSON แล้วดาวน์โหลดมา
-4. GitHub → repo นี้ → Settings → Secrets and variables → Actions → New repository secret
-   - ชื่อ: `FIREBASE_SERVICE_ACCOUNT`
-   - ค่า: วางเนื้อหาไฟล์ JSON ทั้งก้อน
+#### ทาง A: service account (แนะนำ)
+
+สิทธิ์จำกัดอยู่แค่ Hosting ของโปรเจกต์นี้เท่านั้น เหมาะกับ credential ที่ฝังไว้ใน CI
+
+1. [Google Cloud Console → Service Accounts](https://console.cloud.google.com/iam-admin/serviceaccounts?project=com7-rpa-log) → **Create service account** (ตั้งชื่อ เช่น `github-hosting-deploy`)
+2. ให้ role **Firebase Hosting Admin**
+3. คลิกเข้า service account → แท็บ **Keys** → Add key → Create new key → **JSON** → ดาวน์โหลด
+4. ใส่เป็น secret:
+
+```bash
+gh secret set FIREBASE_SERVICE_ACCOUNT --repo COM7-RPA-TEAM/Com7_Log_RPA < "C:\path\to\key.json"
+```
+
+#### ทาง B: FIREBASE_TOKEN (ตั้งง่ายกว่า)
+
+2 คำสั่งจบ ไม่ต้องเข้า Console — แต่ token นี้คือสิทธิ์ของ **บัญชี Google ทั้งบัญชี** (ทุกโปรเจกต์) ไม่ได้จำกัดแค่ Hosting
+
+```bash
+firebase login:ci
+```
+
+```bash
+gh secret set FIREBASE_TOKEN --repo COM7-RPA-TEAM/Com7_Log_RPA
+```
+
+> คำสั่งที่สองจะรอให้วาง token ที่ได้จากคำสั่งแรก แล้วกด Enter + Ctrl+Z + Enter
+> **อย่าวาง token ลงในแชทหรือ commit ลง git**
+
+workflow รองรับทั้งสองแบบ — ถ้ามี `FIREBASE_SERVICE_ACCOUNT` จะใช้ตัวนั้นก่อน ไม่มีจึงใช้ `FIREBASE_TOKEN`
+ถ้าไม่มีทั้งคู่ job จะ fail พร้อมข้อความบอกสาเหตุ
 
 > Cloud Functions และ Database Rules **ไม่ถูก deploy อัตโนมัติโดยตั้งใจ** เพราะมีผลกระทบสูง
 > (ลบข้อมูล / ตัดสิทธิ์เข้าถึง) ควรมีคนตรวจแล้วกดเอง

@@ -5,9 +5,13 @@ name: Deploy Firebase Hosting
 #
 # ⚠️ ตั้งใจ deploy เฉพาะ Hosting เท่านั้น
 #    Cloud Functions และ Database Rules ยัง deploy ด้วยมือ เพราะมีผลกระทบสูง
-#    (ลบข้อมูล / ตัดสิทธิ์เข้าถึง) ควรมีคนกดเองหลังตรวจแล้ว:
-#      cd web-rpa && firebase deploy --only functions
+#    (ลบข้อมูล / ตัดสิทธิ์เข้าถึง) ควรมีคนตรวจแล้วกดเอง:
+#      .\deploy-functions.bat
 #      cd web-rpa && firebase deploy --only database
+#
+# ต้องตั้ง secret อย่างใดอย่างหนึ่งก่อนใช้งาน (ดูวิธีใน README):
+#   FIREBASE_SERVICE_ACCOUNT — JSON ของ service account   ← แนะนำ
+#   FIREBASE_TOKEN           — token จาก `firebase login:ci` ← ตั้งง่ายกว่า แต่เป็นสิทธิ์บัญชีคุณทั้งบัญชี
 
 on:
   push:
@@ -32,26 +36,32 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
-      # ต้องตั้ง Secret ชื่อ FIREBASE_SERVICE_ACCOUNT ไว้ก่อน (ดูวิธีใน README)
-      # เนื้อหาคือ JSON ของ service account ที่มีสิทธิ์ Firebase Hosting Admin
-      - name: Write service account key
+      - name: Check credentials
         env:
           SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FB_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
-          if [ -z "$SA_JSON" ]; then
-            echo "::error::ยังไม่ได้ตั้ง secret FIREBASE_SERVICE_ACCOUNT — ดูวิธีตั้งค่าใน README"
+          if [ -n "$SA_JSON" ]; then
+            printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
+            echo "AUTH_MODE=service-account" >> "$GITHUB_ENV"
+            echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+            echo "ใช้ service account"
+          elif [ -n "$FB_TOKEN" ]; then
+            echo "AUTH_MODE=token" >> "$GITHUB_ENV"
+            echo "ใช้ FIREBASE_TOKEN"
+          else
+            echo "::error::ยังไม่ได้ตั้ง secret — ต้องมี FIREBASE_SERVICE_ACCOUNT หรือ FIREBASE_TOKEN (ดูวิธีใน README)"
             exit 1
           fi
-          printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
 
       - name: Deploy to Firebase Hosting
         working-directory: web-rpa
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
         run: |
-          npx --yes firebase-tools@13 deploy \
+          npx --yes firebase-tools@15 deploy \
             --only hosting \
             --project com7-rpa-log \
             --non-interactive \
