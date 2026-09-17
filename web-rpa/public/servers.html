@@ -336,6 +336,67 @@
       border-radius: 4px; padding: 0 .25rem;
     }
 
+    /* ============ กล่อง ARCHIVED ============ */
+    /* ตั้งใจให้หน้าตาต่างจากแถว server ชัดเจน: โทนจาง เส้นประ ไม่มี packet วิ่ง
+       เพราะของในกล่องนี้ "ไม่ได้รันอยู่" — ถ้าทำให้เหมือนกันจะอ่านผังผิด */
+    .archive {
+      margin-top: 1.6rem;
+      padding-top: 1.1rem;
+      border-top: 1px dashed var(--grid);
+      display: grid;
+      grid-template-columns: 240px 130px minmax(0, 1fr);
+    }
+
+    .archive-node {
+      background: var(--surface-2);
+      border: 1px dashed var(--grid);
+      border-radius: 12px;
+      padding: .8rem .9rem;
+      display: flex; flex-direction: column; gap: .35rem;
+      min-width: 0;
+    }
+
+    .archive-node .top { display: flex; align-items: center; gap: .55rem; }
+
+    .archive-ico {
+      width: 34px; height: 34px; border-radius: 9px;
+      display: grid; place-items: center; font-size: .95rem;
+      background: var(--grid); color: var(--muted); flex: 0 0 auto;
+    }
+
+    .archive-node .nm { font-weight: 700; font-size: .92rem; color: var(--ink-2); }
+    .archive-node .sub { font-size: .7rem; color: var(--muted); }
+
+    .archive-bots {
+      background: var(--surface-2);
+      border: 1px dashed var(--grid);
+      border-radius: 12px;
+      padding: .7rem .8rem;
+      display: flex; flex-wrap: wrap; align-content: flex-start; gap: .4rem;
+      min-height: 76px; min-width: 0;
+      transition: background .12s, border-color .12s;
+    }
+
+    .archive-bots.drop-hot {
+      border-color: var(--muted);
+      border-style: solid;
+      background: color-mix(in srgb, var(--muted) 12%, var(--surface));
+    }
+
+    /* การ์ดในคลัง: จาง ไม่มีแถบสีสถานะ */
+    .bot.archived {
+      border-left-color: var(--grid);
+      background: transparent;
+      opacity: .78;
+    }
+
+    .bot.archived .nm { color: var(--ink-2); font-weight: 500; text-decoration: line-through; text-decoration-color: var(--grid); }
+    .bot.archived .from { font-size: .67rem; color: var(--muted); }
+
+    @media (max-width: 860px) {
+      .archive { grid-template-columns: minmax(0, 1fr); gap: .5rem; }
+    }
+
     /* ============ EMPTY STATE ============ */
     .empty-state {
       background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
@@ -503,6 +564,16 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const MAP = db.ref('rpa_server_map');
+
+    // id สงวนไว้สำหรับกล่อง Archived — ไม่มี record ใน servers/ เพราะไม่ใช่เครื่องจริง
+    // ทำแบบนี้แล้วกล่องนี้ลบไม่ได้ เปลี่ยนชื่อไม่ได้ และมีอยู่เสมอแม้ยังว่าง
+    const ARCHIVE_ID = '__archived';
+
+    /** "YYYY-MM-DD HH:MM:SS" ตามเวลาเครื่อง — รูปแบบเดียวกับที่ระบบใช้ทั้งหมด */
+    function nowStamp() {
+      const n = new Date(), p = x => String(x).padStart(2, '0');
+      return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())} ${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`;
+    }
 
     /* ============ STATE ============ */
     let servers = {};          // { id: {name, kind, note, order} }
@@ -773,14 +844,90 @@
           </div>`;
       });
 
+      html += renderArchive();
+
       board.innerHTML = html;
       wireUpBoard();
-      updateCounts(list.length, searchQuery ? shownBots : Object.keys(bots).length);
+
+      const arc = archivedBots();
+      updateCounts(
+        list.length,
+        searchQuery ? shownBots : Object.keys(bots).length - arc.all.length,
+        searchQuery ? arc.shown.length : arc.all.length
+      );
     }
 
-    function updateCounts(nServers, nBots) {
+    /** บอทในคลัง + ชุดที่ผ่านคำค้นหา — ให้ตัวนับกับตัวแสดงผลใช้ตัวกรองชุดเดียวกัน */
+    function archivedBots() {
+      const all = botsOf(ARCHIVE_ID);
+      return {
+        all,
+        shown: all.filter(b => matchesSearch(b.name) || matchesSearch(b.note) || matchesSearch(b.archived_from)),
+      };
+    }
+
+    /* กล่องเก็บบอทที่เลิกรันแล้ว — โชว์ตลอดแม้ยังว่าง เพื่อให้มีที่ให้ลากมาวางได้เสมอ */
+    function renderArchive() {
+      const { all, shown } = archivedBots();
+
+      const chips = shown.length
+        ? shown.map(b => `
+            <div class="bot archived" draggable="true" data-bot="${esc(b.id)}" title="${esc(b.note || b.name)}">
+              <i class="fa-solid fa-box-archive" style="font-size:.7rem;color:var(--muted)"></i>
+              <span class="nm">${esc(b.name)}</span>
+              ${b.archived_from ? `<span class="from">เคยรันบน ${esc(b.archived_from)}</span>` : ''}
+              ${b.archived_at ? `<span class="from">· เก็บ ${esc(String(b.archived_at).slice(0, 10))}</span>` : ''}
+              <span class="b-act">
+                <button title="แก้ไข" data-edit-bot="${esc(b.id)}"><i class="fa-solid fa-pen"></i></button>
+                <button class="danger" title="ลบออกจากผังถาวร" data-del-bot="${esc(b.id)}"><i class="fa-solid fa-trash"></i></button>
+              </span>
+            </div>`).join('')
+        : `<div class="empty-hint">${searchQuery
+              ? 'ไม่มีบอทในคลังที่ตรงกับคำค้นหา'
+              : 'ยังไม่มีบอทในคลัง — ลากบอทที่เลิกรันแล้วมาวางที่นี่'}</div>`;
+
+      return `
+        <div class="archive">
+          <div class="archive-node">
+            <div class="top">
+              <div class="archive-ico"><i class="fa-solid fa-box-archive"></i></div>
+              <div>
+                <div class="nm">Archived</div>
+                <div class="sub">เลิกรันแล้ว</div>
+              </div>
+            </div>
+            <div class="sub">เก็บไว้ดูว่าเคยมีการรัน — ลากกลับไปเครื่องไหนก็ได้ถ้ากลับมาใช้อีก</div>
+            <div class="sub"><i class="fa-solid fa-box-archive me-1" style="font-size:.66rem"></i>${all.length} bot</div>
+          </div>
+
+          <div class="srv-link" aria-hidden="true"></div>
+
+          <div class="archive-bots" data-drop="${ARCHIVE_ID}">${chips}</div>
+        </div>`;
+    }
+
+    function updateCounts(nServers, nBots, nArchived) {
       document.getElementById('counts').innerHTML =
-        `<b>${nServers}</b> servers · <b>${nBots}</b> bots` + (searchQuery ? ' (กรองอยู่)' : '');
+        `<b>${nServers}</b> servers · <b>${nBots}</b> bots`
+        + (nArchived ? ` · <b>${nArchived}</b> archived` : '')
+        + (searchQuery ? ' (กรองอยู่)' : '');
+    }
+
+    /**
+     * ฟิลด์ที่ต้องเขียนเมื่อบอทย้ายไปอยู่ที่ target
+     *  - เข้าคลัง  -> จดว่าเคยรันบนเครื่องไหน + เก็บเมื่อไหร่ (คือข้อมูลที่คลังนี้มีไว้เพื่อ)
+     *  - ออกจากคลัง -> ลบ 2 ฟิลด์นั้นทิ้ง (null = ลบ key ใน Firebase) ไม่ให้ค้างเป็นข้อมูลหลอก
+     */
+    function archiveFields(bot, target) {
+      if (target === ARCHIVE_ID) {
+        const from = servers[bot.server_id];
+        return {
+          server_id: ARCHIVE_ID,
+          archived_at: nowStamp(),
+          archived_from: (from && from.name) || bot.archived_from || '',
+        };
+      }
+      return { server_id: target, archived_at: null, archived_from: null };
     }
 
     /* ============ DRAG & DROP ย้ายบอทข้าม server ============ */
@@ -809,7 +956,7 @@
           if (!botId || !bots[botId] || bots[botId].server_id === target) return;
           if (!await requireAuth()) return;
           try {
-            await MAP.child('bots/' + botId + '/server_id').set(target);
+            await MAP.child('bots/' + botId).update(archiveFields(bots[botId], target));
           } catch (err) {
             writeError(err);
           }
@@ -835,8 +982,11 @@
       document.getElementById('botTag').value = (b && b.tag) || 'active';
       document.getElementById('botNote').value = (b && b.note) || '';
 
+      // มี Archived ให้เลือกด้วย เพราะ drag & drop ใช้บนจอสัมผัสไม่ได้ —
+      // บนมือถือจึงเก็บเข้าคลัง (และเอาออก) ผ่าน dropdown นี้แทน
       const sel = document.getElementById('botServer');
-      sel.innerHTML = sortedServers().map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+      sel.innerHTML = sortedServers().map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('')
+        + `<option value="${ARCHIVE_ID}">— Archived (เลิกรันแล้ว) —</option>`;
       if (b) sel.value = b.server_id;
 
       botModal.show();
@@ -851,15 +1001,21 @@
 
       const data = {
         name,
-        server_id: serverId,
         tag: document.getElementById('botTag').value,
         note: document.getElementById('botNote').value.trim(),
         order: editingBotId ? (bots[editingBotId].order ?? 999) : botsOf(serverId).length,
+        // ให้ผ่าน archiveFields ตัวเดียวกับ drag & drop เพื่อไม่ให้ตรรกะคลังแยกเป็นสองชุด
+        ...archiveFields(editingBotId ? bots[editingBotId] : { server_id: serverId }, serverId),
       };
 
       try {
-        if (editingBotId) await MAP.child('bots/' + editingBotId).update(data);
-        else await MAP.child('bots').push(data);
+        if (editingBotId) {
+          await MAP.child('bots/' + editingBotId).update(data);
+        } else {
+          // push() ไม่รับค่า null -> ตัดฟิลด์คลังที่เป็น null ออกก่อนสร้างใหม่
+          Object.keys(data).forEach(k => { if (data[k] === null) delete data[k]; });
+          await MAP.child('bots').push(data);
+        }
         botModal.hide();
       } catch (err) {
         writeError(err);

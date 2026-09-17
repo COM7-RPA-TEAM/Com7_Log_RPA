@@ -75,12 +75,16 @@
 
       "bots": {
         "$bot_id": {
+          // server_id = "__archived" คือบอทที่เลิกรันแล้ว เก็บไว้ดูประวัติ (ไม่ใช่ id ของเครื่องจริง)
           ".validate": "newData.hasChildren(['name', 'server_id'])",
           "name": { ".validate": "newData.isString() && newData.val().length <= 120" },
           "server_id": { ".validate": "newData.isString()" },
           "tag": { ".validate": "newData.isString()" },
           "note": { ".validate": "newData.isString() && newData.val().length <= 200" },
           "order": { ".validate": "newData.isNumber()" },
+          // 2 ฟิลด์นี้มีเฉพาะตอนอยู่ในคลัง — ถูกลบออกเมื่อลากกลับไปรันบนเครื่องจริง
+          "archived_at": { ".validate": "newData.isString() && newData.val().length <= 25" },
+          "archived_from": { ".validate": "newData.isString() && newData.val().length <= 80" },
           // เผื่ออนาคตอยากผูกกับ rpa_live_status: เก็บชื่อ bot_name ที่ใช้ยิง log
           "log_key": { ".validate": "newData.isString() && newData.val().length <= 120" },
           "$other": { ".validate": false }
