@@ -54,6 +54,38 @@
         "status_datetime": { ".validate": "newData.isString()" },
         "$other": { ".validate": false }
       }
+    },
+
+    // ผังว่าบอทตัวไหนรันอยู่บน server เครื่องไหน (หน้า servers.html)
+    // เป็นข้อมูลที่คนกรอกเอง ไม่ใช่ log ที่บอทยิงเข้ามา — ย้ายมาจาก draw.io ที่เดิมต้องส่งไฟล์กันในทีม
+    "rpa_server_map": {
+      ".read": true,
+      ".write": "auth != null",
+
+      "servers": {
+        "$server_id": {
+          ".validate": "newData.hasChild('name')",
+          "name": { ".validate": "newData.isString() && newData.val().length <= 80" },
+          "kind": { ".validate": "newData.isString()" },
+          "note": { ".validate": "newData.isString() && newData.val().length <= 200" },
+          "order": { ".validate": "newData.isNumber()" },
+          "$other": { ".validate": false }
+        }
+      },
+
+      "bots": {
+        "$bot_id": {
+          ".validate": "newData.hasChildren(['name', 'server_id'])",
+          "name": { ".validate": "newData.isString() && newData.val().length <= 120" },
+          "server_id": { ".validate": "newData.isString()" },
+          "tag": { ".validate": "newData.isString()" },
+          "note": { ".validate": "newData.isString() && newData.val().length <= 200" },
+          "order": { ".validate": "newData.isNumber()" },
+          // เผื่ออนาคตอยากผูกกับ rpa_live_status: เก็บชื่อ bot_name ที่ใช้ยิง log
+          "log_key": { ".validate": "newData.isString() && newData.val().length <= 120" },
+          "$other": { ".validate": false }
+        }
+      }
     }
   }
 }

@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COM7 RPA — Live Server Map</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗺️</text></svg>">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ============================================================
+       DESIGN TOKENS — ชุดเดียวกับ index.html / tv.html
+       สลับธีมด้วย attribute data-theme บน <html>
+       ============================================================ */
+    :root,
+    :root[data-theme="light"] {
+      --page: #f9f9f7;
+      --surface: #fcfcfb;
+      --surface-2: #f3f2ee;
+      --ink: #0b0b0b;
+      --ink-2: #52514e;
+      --muted: #898781;
+      --grid: #e1e0d9;
+      --line: rgba(11, 11, 11, .10);
+      --shadow: 0 1px 2px rgba(11, 11, 11, .05), 0 4px 16px rgba(11, 11, 11, .05);
+
+      --running: #2a78d6;
+      --good: #0ca30c;
+      --good-text: #006300;
+      --critical: #d03b3b;
+      --critical-text: #b02a2a;
+      --warning: #fab219;
+      --warning-text: #8a6206;
+    }
+
+    :root[data-theme="dark"] {
+      --page: #0d0d0d;
+      --surface: #1a1a19;
+      --surface-2: #232322;
+      --ink: #ffffff;
+      --ink-2: #c3c2b7;
+      --muted: #898781;
+      --grid: #2c2c2a;
+      --line: rgba(255, 255, 255, .10);
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 4px 20px rgba(0, 0, 0, .35);
+
+      --running: #3987e5;
+      --good: #0ca30c;
+      --good-text: #2fbf2f;
+      --critical: #d03b3b;
+      --critical-text: #e66767;
+      --warning: #fab219;
+      --warning-text: #fab219;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: 'Inter', 'Kanit', system-ui, 'Segoe UI', sans-serif;
+      font-size: .9rem;
+    }
+
+    /* ============ TOPBAR ============ */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: var(--surface);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .topbar-inner {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: .6rem 1.1rem;
+      flex-wrap: wrap;
+    }
+
+    .brand { display: flex; align-items: center; gap: .6rem; font-weight: 700; white-space: nowrap; }
+    .brand small { display: block; font-size: .68rem; font-weight: 500; color: var(--muted); }
+
+    .brand .logo {
+      width: 32px; height: 32px;
+      border-radius: 9px;
+      background: var(--running);
+      color: #fff;
+      display: grid; place-items: center;
+    }
+
+    .nav-pills-custom { display: flex; gap: .25rem; background: var(--surface-2); padding: .25rem; border-radius: 11px; }
+
+    .nav-pills-custom button,
+    .nav-pills-custom a {
+      border: 0;
+      background: transparent;
+      color: var(--ink-2);
+      font-size: .82rem;
+      font-weight: 600;
+      padding: .4rem .8rem;
+      border-radius: 8px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .nav-pills-custom button:hover,
+    .nav-pills-custom a:hover { color: var(--ink); }
+    .nav-pills-custom .active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
+    .topbar-right { display: flex; align-items: center; gap: .5rem; margin-left: auto; flex-wrap: wrap; }
+
+    .btn-ghost {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink-2);
+      font-size: .76rem;
+      font-weight: 600;
+      padding: .35rem .7rem;
+      border-radius: 8px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn-ghost:hover { color: var(--ink); border-color: var(--grid); }
+    .btn-ghost.on { color: var(--running); border-color: color-mix(in srgb, var(--running) 45%, transparent); }
+
+    .conn {
+      display: inline-flex; align-items: center; gap: .4rem;
+      font-size: .7rem; font-weight: 700; color: var(--muted);
+      border: 1px solid var(--line); border-radius: 999px; padding: .25rem .6rem;
+    }
+
+    .conn .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+    .conn.online { color: var(--good-text); }
+    .conn.online .dot { background: var(--good); }
+    .conn.offline { color: var(--critical-text); }
+    .conn.offline .dot { background: var(--critical); }
+
+    /* ============ LAYOUT ============ */
+    .wrap { max-width: 1500px; margin: 0 auto; padding: 1.1rem; }
+
+    .toolbar {
+      display: flex; align-items: center; gap: .55rem;
+      flex-wrap: wrap; margin-bottom: 1rem;
+    }
+
+    .search { position: relative; }
+    .search i { position: absolute; left: .65rem; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: .8rem; }
+
+    .search input {
+      background: var(--surface); border: 1px solid var(--line); color: var(--ink);
+      border-radius: 9px; padding: .42rem .7rem .42rem 2rem; font-size: .82rem; width: 260px;
+    }
+
+    .counts { margin-left: auto; font-size: .76rem; color: var(--muted); }
+    .counts b { color: var(--ink); }
+
+    /* ============ SERVER ROW ============ */
+    /* minmax(0,1fr) ไม่ใช่ 1fr: grid item มี min-width:auto อยู่แล้ว ถ้าไม่บังคับ
+       ชื่อบอทยาวๆ จะดันคอลัมน์จนล้นจอแทนที่จะตัดด้วย ellipsis */
+    .srv-row {
+      display: grid;
+      grid-template-columns: 240px 130px minmax(0, 1fr);
+      align-items: stretch;
+      gap: 0;
+      margin-bottom: .9rem;
+    }
+
+    .srv-node {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: .8rem .9rem;
+      display: flex; flex-direction: column; gap: .35rem;
+      position: relative;
+      min-width: 0;
+    }
+
+    .srv-node .top { display: flex; align-items: center; gap: .55rem; }
+
+    .srv-ico {
+      width: 34px; height: 34px; border-radius: 9px;
+      display: grid; place-items: center; font-size: .95rem; color: #fff;
+      background: var(--running); flex: 0 0 auto;
+    }
+
+    .srv-ico.client { background: #6b4fd6; }
+    .srv-ico.cloud { background: #0f9b8e; }
+
+    .srv-name { font-weight: 700; font-size: .92rem; word-break: break-all; line-height: 1.25; }
+
+    .srv-kind {
+      font-size: .64rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+      color: var(--muted); border: 1px solid var(--line); border-radius: 5px; padding: 0 .3rem;
+    }
+
+    .srv-note { font-size: .72rem; color: var(--muted); }
+    .srv-count { font-size: .72rem; color: var(--ink-2); }
+
+    .srv-actions { position: absolute; top: .45rem; right: .5rem; display: flex; gap: .2rem; opacity: 0; transition: opacity .12s; }
+    .srv-node:hover .srv-actions { opacity: 1; }
+
+    .icon-btn {
+      border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2);
+      width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; font-size: .68rem;
+    }
+
+    .icon-btn:hover { color: var(--ink); }
+    .icon-btn.danger:hover { color: var(--critical-text); border-color: var(--critical); }
+
+    /* ============ เส้นเชื่อม + packet วิ่ง ============ */
+    .srv-link { position: relative; display: flex; align-items: center; padding: 0 .3rem; }
+
+    .wire {
+      position: absolute; left: .3rem; right: 1rem; top: 50%; height: 2px;
+      background: linear-gradient(90deg, var(--grid), color-mix(in srgb, var(--running) 55%, transparent));
+      transform: translateY(-50%);
+    }
+
+    .wire-head {
+      position: absolute; right: .35rem; top: 50%; transform: translateY(-50%);
+      color: var(--running); font-size: .85rem;
+    }
+
+    /* packet วิ่ง server -> bot (ส่งงาน) และวิ่งกลับ (รายงานผล) */
+    .pkt {
+      position: absolute; top: 50%; width: 7px; height: 7px; border-radius: 50%;
+      margin-top: -3.5px;
+      background: var(--running);
+      box-shadow: 0 0 9px color-mix(in srgb, var(--running) 80%, transparent);
+      animation: pkt-fwd 2.6s linear infinite;
+    }
+
+    .pkt.back {
+      background: var(--good);
+      box-shadow: 0 0 9px color-mix(in srgb, var(--good) 80%, transparent);
+      animation: pkt-back 3.4s linear infinite;
+      width: 5px; height: 5px; margin-top: -2.5px;
+    }
+
+    .pkt.d1 { animation-delay: 0s; }
+    .pkt.d2 { animation-delay: .85s; }
+    .pkt.d3 { animation-delay: 1.7s; }
+    .pkt.back.d1 { animation-delay: .4s; }
+    .pkt.back.d2 { animation-delay: 2.1s; }
+
+    @keyframes pkt-fwd {
+      0% { left: 4%; opacity: 0; }
+      12% { opacity: 1; }
+      88% { opacity: 1; }
+      100% { left: 92%; opacity: 0; }
+    }
+
+    @keyframes pkt-back {
+      0% { left: 92%; opacity: 0; }
+      12% { opacity: 1; }
+      88% { opacity: 1; }
+      100% { left: 4%; opacity: 0; }
+    }
+
+    /* ปิด animation: ปุ่มบนหน้าจอ, ผู้ใช้ตั้งค่าลดการเคลื่อนไหว, หรือแท็บถูกซ่อนอยู่ */
+    body.no-anim .pkt { animation: none; opacity: 0; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .pkt { animation: none; opacity: 0; }
+    }
+
+    /* ============ กล่องบอท (drop zone) ============ */
+    .srv-bots {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: .7rem .8rem;
+      display: flex; flex-wrap: wrap; align-content: flex-start; gap: .4rem;
+      min-height: 76px;
+      min-width: 0;
+      transition: background .12s, border-color .12s;
+    }
+
+    .srv-bots.drop-hot {
+      border-color: var(--running);
+      background: color-mix(in srgb, var(--running) 8%, var(--surface));
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--running) 25%, transparent);
+    }
+
+    .srv-bots .empty-hint {
+      color: var(--muted); font-size: .76rem; align-self: center;
+      border: 1px dashed var(--grid); border-radius: 8px; padding: .4rem .7rem; width: 100%;
+      text-align: center;
+    }
+
+    .bot {
+      display: inline-flex; align-items: center; gap: .4rem;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--running);
+      border-radius: 8px;
+      padding: .3rem .55rem;
+      font-size: .78rem; font-weight: 600;
+      cursor: grab;
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    .bot:active { cursor: grabbing; }
+    .bot.dragging { opacity: .4; }
+    .bot .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* บอทที่ยังไม่ขึ้นจริง (ในไฟล์ draw.io เดิมใช้ตัวอักษรสีน้ำเงิน) */
+    .bot.planned { border-left-color: var(--warning); background: color-mix(in srgb, var(--warning) 9%, var(--surface-2)); }
+    .bot.planned .nm { color: var(--warning-text); }
+
+    .bot .b-act { opacity: 0; display: inline-flex; gap: .15rem; }
+    .bot:hover .b-act { opacity: 1; }
+
+    .bot .b-act button {
+      border: 0; background: transparent; color: var(--muted); font-size: .68rem; padding: 0 .12rem;
+    }
+
+    .bot .b-act button:hover { color: var(--ink); }
+    .bot .b-act button.danger:hover { color: var(--critical-text); }
+
+    .tag-pill {
+      font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+      color: var(--warning-text); border: 1px solid color-mix(in srgb, var(--warning) 40%, transparent);
+      border-radius: 4px; padding: 0 .25rem;
+    }
+
+    /* ============ EMPTY STATE ============ */
+    .empty-state {
+      background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+      padding: 3rem 1.5rem; text-align: center; box-shadow: var(--shadow);
+    }
+
+    .empty-state i.big { font-size: 2.6rem; color: var(--muted); }
+    .empty-state h5 { margin: .9rem 0 .35rem; font-weight: 700; }
+    .empty-state p { color: var(--muted); font-size: .84rem; max-width: 520px; margin: 0 auto 1.1rem; }
+
+    .hint-bar {
+      font-size: .74rem; color: var(--muted);
+      border: 1px dashed var(--grid); border-radius: 9px;
+      padding: .45rem .7rem; margin-bottom: .9rem;
+    }
+
+    /* modal ให้ตรงโทนธีม */
+    .modal-content { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; }
+    .modal-header, .modal-footer { border-color: var(--grid); }
+    .form-label { font-size: .78rem; font-weight: 600; color: var(--ink-2); }
+
+    /* จอแคบ: ซ้อนเป็นแนวตั้ง แล้วซ่อนเส้นเชื่อม (แนวนอนอย่างเดียวจะดูไม่รู้เรื่อง) */
+    @media (max-width: 860px) {
+      .srv-row { grid-template-columns: minmax(0, 1fr); gap: .5rem; }
+      .srv-link { display: none; }
+      .search input { width: 100%; }
+    }
+
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-thumb { background: var(--grid); border-radius: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+  </style>
+</head>
+
+<body>
+  <!-- ================= TOPBAR ================= -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="logo"><i class="fa-solid fa-robot"></i></div>
+        <div>
+          COM7 RPA Monitor
+          <small>Live Server Map · COM7-RPA-TEAM</small>
+        </div>
+      </div>
+
+      <nav class="nav-pills-custom">
+        <a href="index.html"><i class="fa-solid fa-bolt me-1"></i> Live</a>
+        <a href="index.html#history"><i class="fa-solid fa-clock-rotate-left me-1"></i> History</a>
+        <a href="index.html#analytics"><i class="fa-solid fa-chart-column me-1"></i> Analytics</a>
+        <a class="active" href="servers.html"><i class="fa-solid fa-sitemap me-1"></i> Servers</a>
+      </nav>
+
+      <div class="topbar-right">
+        <span class="conn" id="connBadge"><span class="dot"></span><span id="connText">connecting…</span></span>
+        <button class="btn-ghost" id="animToggle" title="เปิด/ปิด animation การรับ-ส่งข้อมูล"><i class="fa-solid fa-wave-square"></i> <span id="animLabel">Animation: ON</span></button>
+        <a class="btn-ghost" href="tv.html" title="โหมดจอ TV / Wallboard"><i class="fa-solid fa-tv"></i> TV Mode</a>
+        <button class="btn-ghost" id="authBtn" title="ต้องเข้าสู่ระบบก่อนจึงจะแก้ผังได้"><i class="fa-solid fa-right-to-bracket"></i> <span id="authLabel">เข้าสู่ระบบ</span></button>
+        <button class="btn-ghost" id="themeToggle"><i class="fa-solid fa-sun"></i></button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="toolbar">
+      <div class="search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="searchInput" placeholder="ค้นหาชื่อบอท / server…">
+      </div>
+      <button class="btn-ghost" id="btnAddBot"><i class="fa-solid fa-plus me-1"></i> เพิ่ม RPA Bot</button>
+      <button class="btn-ghost" id="btnAddServer"><i class="fa-solid fa-server me-1"></i> เพิ่ม Server</button>
+      <span class="counts" id="counts"></span>
+    </div>
+
+    <div class="hint-bar">
+      <i class="fa-solid fa-hand-pointer me-1"></i>
+      ลากการ์ดบอทไปวางในกล่องของ server อื่นเพื่อย้ายเครื่องที่รัน — บันทึกลง Firebase ทันที ทุกคนที่เปิดหน้านี้จะเห็นพร้อมกัน
+    </div>
+
+    <div id="board"></div>
+  </main>
+
+  <!-- ================= MODAL: BOT ================= -->
+  <div class="modal fade" id="botModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h6 class="modal-title fw-bold"><i class="fa-solid fa-robot me-1"></i> <span id="botModalTitle">เพิ่ม RPA Bot</span></h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">ชื่อ Bot / Project</label>
+            <input type="text" class="form-control" id="botName" placeholder="เช่น RPA GI Create PO">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">รันบน Server</label>
+            <select class="form-select" id="botServer"></select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">สถานะ</label>
+            <select class="form-select" id="botTag">
+              <option value="active">ใช้งานจริงแล้ว</option>
+              <option value="planned">ยังไม่ขึ้น / กำลังย้าย</option>
+            </select>
+          </div>
+          <div class="mb-1">
+            <label class="form-label">หมายเหตุ (ไม่บังคับ)</label>
+            <input type="text" class="form-control" id="botNote" placeholder="เช่น To-be move to K2">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+          <button type="button" class="btn btn-sm btn-primary px-4" id="botSave"><i class="fa-solid fa-save me-1"></i> บันทึก</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: SERVER ================= -->
+  <div class="modal fade" id="serverModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h6 class="modal-title fw-bold"><i class="fa-solid fa-server me-1"></i> <span id="serverModalTitle">เพิ่ม Server</span></h6>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">ชื่อ / IP</label>
+            <input type="text" class="form-control" id="serverName" placeholder="เช่น 192.168.43.20">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">ประเภท</label>
+            <select class="form-select" id="serverKind">
+              <option value="vm">VM</option>
+              <option value="client">Client</option>
+              <option value="cloud">Cloud</option>
+            </select>
+          </div>
+          <div class="mb-1">
+            <label class="form-label">หมายเหตุ (ไม่บังคับ)</label>
+            <input type="text" class="form-control" id="serverNote" placeholder="เช่น เครื่องบอทหลัก">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+          <button type="button" class="btn btn-sm btn-primary px-4" id="serverSave"><i class="fa-solid fa-save me-1"></i> บันทึก</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="rpa-common.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      databaseURL: "https://com7-rpa-log-default-rtdb.asia-southeast1.firebasedatabase.app/",
+      apiKey: "AIzaSyCDUe5A8wy8w0R3ry5iYxaRetQb7uu_Vug",
+      authDomain: "com7-rpa-log.firebaseapp.com",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const MAP = db.ref('rpa_server_map');
+
+    /* ============ STATE ============ */
+    let servers = {};          // { id: {name, kind, note, order} }
+    let bots = {};             // { id: {name, server_id, tag, note, order} }
+    let loaded = { servers: false, bots: false };
+    let searchQuery = '';
+    let editingBotId = null;   // null = โหมดเพิ่มใหม่
+    let editingServerId = null;
+    let botModal = null, serverModal = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      botModal = new bootstrap.Modal(document.getElementById('botModal'));
+      serverModal = new bootstrap.Modal(document.getElementById('serverModal'));
+    });
+
+    /* ============ AUTH (ใช้เฉพาะตอนแก้ผัง) ============ */
+    // เหมือน index.html: อ่านได้ทุกคน เขียนต้อง login (ตาม database rules)
+    // โหลด Auth SDK แบบ on-demand เพราะ v8 จะ throw ทันทีถ้า apiKey ว่าง
+    const authReady = !!firebaseConfig.apiKey;
+    let auth = null;
+    let currentUser = null;
+
+    function loadAuthSdk() {
+      return new Promise((resolve, reject) => {
+        const el = document.createElement('script');
+        el.src = 'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js';
+        el.onload = resolve;
+        el.onerror = () => reject(new Error('โหลด Firebase Auth SDK ไม่สำเร็จ'));
+        document.head.appendChild(el);
+      });
+    }
+
+    async function initAuth() {
+      await loadAuthSdk();
+      auth = firebase.auth();
+      auth.onAuthStateChanged(user => {
+        currentUser = user;
+        const label = document.getElementById('authLabel');
+        const btn = document.getElementById('authBtn');
+        if (user) {
+          label.textContent = (user.email || 'ออกจากระบบ').split('@')[0];
+          btn.title = `เข้าสู่ระบบเป็น ${user.email} — คลิกเพื่อออกจากระบบ`;
+          btn.querySelector('i').className = 'fa-solid fa-right-from-bracket';
+        } else {
+          label.textContent = 'เข้าสู่ระบบ';
+          btn.title = 'ต้องเข้าสู่ระบบก่อนจึงจะแก้ผังได้';
+          btn.querySelector('i').className = 'fa-solid fa-right-to-bracket';
+        }
+      });
+    }
+
+    if (!authReady) document.getElementById('authBtn').hidden = true;
+    const authInit = authReady ? initAuth() : Promise.resolve();
+
+    document.getElementById('authBtn').addEventListener('click', async () => {
+      if (!authReady) return;
+      await authInit;
+      if (currentUser) auth.signOut();
+      else signIn();
+    });
+
+    async function signIn() {
+      if (!authReady) return false;
+      try {
+        await authInit;
+        await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+        return true;
+      } catch (err) {
+        if (err && err.code === 'auth/popup-closed-by-user') return false;
+        alert('เข้าสู่ระบบไม่สำเร็จ: ' + (err && err.message ? err.message : err));
+        return false;
+      }
+    }
+
+    async function requireAuth() {
+      if (!authReady) return true;
+      await authInit;
+      if (currentUser) return true;
+      return await signIn();
+    }
+
+    function writeError(err) {
+      const msg = String((err && err.message) || err);
+      if (msg.toUpperCase().includes('PERMISSION_DENIED')) {
+        alert('ไม่มีสิทธิ์บันทึก — กรุณาเข้าสู่ระบบใหม่อีกครั้ง');
+      } else {
+        alert('Error: ' + msg);
+      }
+    }
+
+    /* ============ ข้อมูลตั้งต้น (ย้ายมาจาก draw.io ของทีม) ============ */
+    // ใช้ครั้งเดียวตอนผังยังว่าง — ตัวที่ในไฟล์เดิมเป็นตัวอักษรสีน้ำเงิน ถูกตั้งเป็น 'planned'
+    const SEED = [
+      {
+        name: '192.168.43.20', kind: 'vm', bots: [
+          'RPA Finance Cash Reconcile',
+          'RPA Account Three Way Matching (Com7)',
+        ]
+      },
+      {
+        name: '192.168.43.31', kind: 'vm', bots: [
+          'RPA TFF Payment Voucher (PV)',
+          'RPA EV7 M-Flow',
+          'RPA Account Download&Transfer E-Tax',
+        ]
+      },
+      {
+        name: '192.168.43.78', kind: 'vm', bots: [
+          'RPA GI Purchase Order (PO)',
+          'RPA GI Sales Order (SO)',
+          'RPA GI After Sales',
+          { name: 'RPA GI Export&Match VIN/Motor (Cash)', tag: 'planned' },
+        ]
+      },
+      {
+        name: '192.168.43.79', kind: 'vm', bots: [
+          'RPA NPI Gen Coupon',
+        ]
+      },
+      {
+        name: 'Client', kind: 'client', bots: [
+          'RPA CaseClub Open Bill',
+          'RPA iCare Open Bill',
+          { name: 'RPA Finance Bank Import', note: 'To-be move to K2' },
+          'RPA HR Sent Mail to Store',
+          'RPA Account Three Way Matching (Other Company)',
+          'RPA Mer Generate Coupon',
+          'RPA GI Attach Invoice DMS',
+          'RPA GI Create PO',
+          'RPA Store Adjust Stock',
+          'RPA Mer Open Sell Bill',
+          'RPA Mer Transfer ID4 to Store',
+          'RPA Mer Set Min/Day',
+          'RPA Mer Lock PO',
+          'RPA Mer Lock Product',
+          { name: 'RPA Finanace Auto Bill Payment (K2)', tag: 'planned' },
+        ]
+      },
+      { name: '91 Cloud', kind: 'cloud', bots: [] },
+    ];
+
+    async function importSeed() {
+      if (Object.keys(servers).length || Object.keys(bots).length) {
+        if (!confirm('ผังมีข้อมูลอยู่แล้ว — นำเข้าซ้ำจะทำให้มีรายการซ้ำกัน ต้องการทำต่อ?')) return;
+      }
+      if (!await requireAuth()) return;
+
+      const payload = { servers: {}, bots: {} };
+      SEED.forEach((srv, si) => {
+        const sid = MAP.child('servers').push().key;
+        payload.servers[sid] = { name: srv.name, kind: srv.kind, note: '', order: si };
+        srv.bots.forEach((b, bi) => {
+          const item = (typeof b === 'string') ? { name: b } : b;
+          const bid = MAP.child('bots').push().key;
+          payload.bots[bid] = {
+            name: item.name,
+            server_id: sid,
+            tag: item.tag || 'active',
+            note: item.note || '',
+            order: bi,
+          };
+        });
+      });
+
+      try {
+        await MAP.update(payload);
+      } catch (err) {
+        writeError(err);
+      }
+    }
+
+    /* ============ RENDER ============ */
+    const KIND_ICON = { vm: 'fa-server', client: 'fa-display', cloud: 'fa-cloud' };
+    const KIND_LABEL = { vm: 'VM', client: 'Client', cloud: 'Cloud' };
+
+    function sortedServers() {
+      return Object.entries(servers)
+        .map(([id, s]) => ({ id, ...s }))
+        .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || String(a.name).localeCompare(String(b.name)));
+    }
+
+    function botsOf(serverId) {
+      return Object.entries(bots)
+        .filter(([, b]) => b.server_id === serverId)
+        .map(([id, b]) => ({ id, ...b }))
+        .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || String(a.name).localeCompare(String(b.name)));
+    }
+
+    function matchesSearch(text) {
+      return !searchQuery || String(text || '').toLowerCase().includes(searchQuery);
+    }
+
+    function render() {
+      const board = document.getElementById('board');
+
+      if (!loaded.servers || !loaded.bots) {
+        board.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-notch fa-spin big"></i><h5>กำลังโหลดผัง…</h5></div>`;
+        return;
+      }
+
+      const list = sortedServers();
+      if (!list.length) {
+        board.innerHTML = `
+          <div class="empty-state">
+            <i class="fa-solid fa-sitemap big"></i>
+            <h5>ยังไม่มีผัง Server</h5>
+            <p>นำเข้ารายการตั้งต้นจากไฟล์ draw.io ที่ทีมทำไว้ได้เลย (${SEED.length} servers)
+               แล้วค่อยลาก-วางปรับทีหลัง หรือจะเริ่มจากศูนย์ด้วยปุ่ม "เพิ่ม Server" ก็ได้</p>
+            <button class="btn btn-sm btn-primary px-4" id="btnSeed">
+              <i class="fa-solid fa-file-import me-1"></i> นำเข้าข้อมูลตั้งต้นจาก draw.io
+            </button>
+          </div>`;
+        document.getElementById('btnSeed').addEventListener('click', importSeed);
+        updateCounts(0, 0);
+        return;
+      }
+
+      let shownBots = 0;
+      let html = '';
+      list.forEach(srv => {
+        const all = botsOf(srv.id);
+        const shown = all.filter(b => matchesSearch(b.name) || matchesSearch(b.note) || matchesSearch(srv.name));
+        shownBots += shown.length;
+
+        const chips = shown.length
+          ? shown.map(b => `
+              <div class="bot ${b.tag === 'planned' ? 'planned' : ''}" draggable="true" data-bot="${esc(b.id)}" title="${esc(b.note || b.name)}">
+                <i class="fa-solid fa-robot" style="font-size:.7rem;color:var(--muted)"></i>
+                <span class="nm">${esc(b.name)}</span>
+                ${b.tag === 'planned' ? '<span class="tag-pill">planned</span>' : ''}
+                ${b.note ? `<span style="font-size:.68rem;color:var(--muted)">· ${esc(b.note)}</span>` : ''}
+                <span class="b-act">
+                  <button title="แก้ไข" data-edit-bot="${esc(b.id)}"><i class="fa-solid fa-pen"></i></button>
+                  <button class="danger" title="ลบ" data-del-bot="${esc(b.id)}"><i class="fa-solid fa-trash"></i></button>
+                </span>
+              </div>`).join('')
+          : `<div class="empty-hint">${searchQuery ? 'ไม่มีบอทที่ตรงกับคำค้นหา' : 'ยังไม่มีบอทบนเครื่องนี้ — ลากมาวางได้'}</div>`;
+
+        // เส้นเชื่อมจะมี packet วิ่งเฉพาะเครื่องที่มีบอทจริง
+        const wire = all.length ? `
+            <span class="pkt d1"></span><span class="pkt d2"></span><span class="pkt d3"></span>
+            <span class="pkt back d1"></span><span class="pkt back d2"></span>` : '';
+
+        html += `
+          <div class="srv-row">
+            <div class="srv-node">
+              <div class="srv-actions">
+                <button class="icon-btn" title="แก้ไข server" data-edit-srv="${esc(srv.id)}"><i class="fa-solid fa-pen"></i></button>
+                <button class="icon-btn danger" title="ลบ server" data-del-srv="${esc(srv.id)}"><i class="fa-solid fa-trash"></i></button>
+              </div>
+              <div class="top">
+                <div class="srv-ico ${esc(srv.kind || 'vm')}"><i class="fa-solid ${KIND_ICON[srv.kind] || 'fa-server'}"></i></div>
+                <div>
+                  <div class="srv-name">${esc(srv.name)}</div>
+                  <span class="srv-kind">${esc(KIND_LABEL[srv.kind] || srv.kind || 'VM')}</span>
+                </div>
+              </div>
+              ${srv.note ? `<div class="srv-note">${esc(srv.note)}</div>` : ''}
+              <div class="srv-count"><i class="fa-solid fa-robot me-1" style="font-size:.68rem"></i>${all.length} bot</div>
+            </div>
+
+            <div class="srv-link" aria-hidden="true">
+              <span class="wire"></span>${wire}
+              <i class="fa-solid fa-caret-right wire-head"></i>
+            </div>
+
+            <div class="srv-bots" data-drop="${esc(srv.id)}">${chips}</div>
+          </div>`;
+      });
+
+      board.innerHTML = html;
+      wireUpBoard();
+      updateCounts(list.length, searchQuery ? shownBots : Object.keys(bots).length);
+    }
+
+    function updateCounts(nServers, nBots) {
+      document.getElementById('counts').innerHTML =
+        `<b>${nServers}</b> servers · <b>${nBots}</b> bots` + (searchQuery ? ' (กรองอยู่)' : '');
+    }
+
+    /* ============ DRAG & DROP ย้ายบอทข้าม server ============ */
+    function wireUpBoard() {
+      document.querySelectorAll('.bot[draggable="true"]').forEach(el => {
+        el.addEventListener('dragstart', ev => {
+          ev.dataTransfer.setData('text/plain', el.dataset.bot);
+          ev.dataTransfer.effectAllowed = 'move';
+          el.classList.add('dragging');
+        });
+        el.addEventListener('dragend', () => el.classList.remove('dragging'));
+      });
+
+      document.querySelectorAll('[data-drop]').forEach(zone => {
+        zone.addEventListener('dragover', ev => {
+          ev.preventDefault();
+          ev.dataTransfer.dropEffect = 'move';
+          zone.classList.add('drop-hot');
+        });
+        zone.addEventListener('dragleave', () => zone.classList.remove('drop-hot'));
+        zone.addEventListener('drop', async ev => {
+          ev.preventDefault();
+          zone.classList.remove('drop-hot');
+          const botId = ev.dataTransfer.getData('text/plain');
+          const target = zone.dataset.drop;
+          if (!botId || !bots[botId] || bots[botId].server_id === target) return;
+          if (!await requireAuth()) return;
+          try {
+            await MAP.child('bots/' + botId + '/server_id').set(target);
+          } catch (err) {
+            writeError(err);
+          }
+        });
+      });
+
+      document.querySelectorAll('[data-edit-bot]').forEach(b =>
+        b.addEventListener('click', () => openBotModal(b.dataset.editBot)));
+      document.querySelectorAll('[data-del-bot]').forEach(b =>
+        b.addEventListener('click', () => deleteBot(b.dataset.delBot)));
+      document.querySelectorAll('[data-edit-srv]').forEach(b =>
+        b.addEventListener('click', () => openServerModal(b.dataset.editSrv)));
+      document.querySelectorAll('[data-del-srv]').forEach(b =>
+        b.addEventListener('click', () => deleteServer(b.dataset.delSrv)));
+    }
+
+    /* ============ CRUD: BOT ============ */
+    function openBotModal(botId) {
+      editingBotId = botId || null;
+      const b = botId ? bots[botId] : null;
+      document.getElementById('botModalTitle').textContent = b ? 'แก้ไข RPA Bot' : 'เพิ่ม RPA Bot';
+      document.getElementById('botName').value = b ? b.name : '';
+      document.getElementById('botTag').value = (b && b.tag) || 'active';
+      document.getElementById('botNote').value = (b && b.note) || '';
+
+      const sel = document.getElementById('botServer');
+      sel.innerHTML = sortedServers().map(s => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+      if (b) sel.value = b.server_id;
+
+      botModal.show();
+    }
+
+    document.getElementById('botSave').addEventListener('click', async () => {
+      const name = document.getElementById('botName').value.trim();
+      const serverId = document.getElementById('botServer').value;
+      if (!name) { alert('กรุณาใส่ชื่อ Bot'); return; }
+      if (!serverId) { alert('ยังไม่มี Server ให้เลือก — เพิ่ม Server ก่อน'); return; }
+      if (!await requireAuth()) return;
+
+      const data = {
+        name,
+        server_id: serverId,
+        tag: document.getElementById('botTag').value,
+        note: document.getElementById('botNote').value.trim(),
+        order: editingBotId ? (bots[editingBotId].order ?? 999) : botsOf(serverId).length,
+      };
+
+      try {
+        if (editingBotId) await MAP.child('bots/' + editingBotId).update(data);
+        else await MAP.child('bots').push(data);
+        botModal.hide();
+      } catch (err) {
+        writeError(err);
+      }
+    });
+
+    async function deleteBot(botId) {
+      const b = bots[botId];
+      if (!b) return;
+      if (!confirm(`ลบ "${b.name}" ออกจากผัง?`)) return;
+      if (!await requireAuth()) return;
+      try {
+        await MAP.child('bots/' + botId).remove();
+      } catch (err) {
+        writeError(err);
+      }
+    }
+
+    /* ============ CRUD: SERVER ============ */
+    function openServerModal(serverId) {
+      editingServerId = serverId || null;
+      const s = serverId ? servers[serverId] : null;
+      document.getElementById('serverModalTitle').textContent = s ? 'แก้ไข Server' : 'เพิ่ม Server';
+      document.getElementById('serverName').value = s ? s.name : '';
+      document.getElementById('serverKind').value = (s && s.kind) || 'vm';
+      document.getElementById('serverNote').value = (s && s.note) || '';
+      serverModal.show();
+    }
+
+    document.getElementById('serverSave').addEventListener('click', async () => {
+      const name = document.getElementById('serverName').value.trim();
+      if (!name) { alert('กรุณาใส่ชื่อ / IP ของ Server'); return; }
+      if (!await requireAuth()) return;
+
+      const data = {
+        name,
+        kind: document.getElementById('serverKind').value,
+        note: document.getElementById('serverNote').value.trim(),
+        order: editingServerId ? (servers[editingServerId].order ?? 999) : Object.keys(servers).length,
+      };
+
+      try {
+        if (editingServerId) await MAP.child('servers/' + editingServerId).update(data);
+        else await MAP.child('servers').push(data);
+        serverModal.hide();
+      } catch (err) {
+        writeError(err);
+      }
+    });
+
+    async function deleteServer(serverId) {
+      const s = servers[serverId];
+      if (!s) return;
+      const n = botsOf(serverId).length;
+      if (n) {
+        alert(`ลบไม่ได้ — ยังมีบอท ${n} ตัวรันอยู่บน "${s.name}"\nย้ายบอทออกไป server อื่นก่อน แล้วค่อยลบ`);
+        return;
+      }
+      if (!confirm(`ลบ server "${s.name}" ออกจากผัง?`)) return;
+      if (!await requireAuth()) return;
+      try {
+        await MAP.child('servers/' + serverId).remove();
+      } catch (err) {
+        writeError(err);
+      }
+    }
+
+    document.getElementById('btnAddBot').addEventListener('click', () => {
+      if (!Object.keys(servers).length) { alert('ยังไม่มี Server — เพิ่ม Server ก่อน'); return; }
+      openBotModal(null);
+    });
+    document.getElementById('btnAddServer').addEventListener('click', () => openServerModal(null));
+
+    document.getElementById('searchInput').addEventListener('input', e => {
+      searchQuery = e.target.value.trim().toLowerCase();
+      render();
+    });
+
+    /* ============ DATA ============ */
+    // callback ตัวที่สองสำคัญ: ถ้า rules ปฏิเสธ Firebase จะไม่ยิง value มาเลย
+    // ถ้าไม่ดัก error หน้าจะค้างอยู่ที่ "กำลังโหลด…" ตลอดไปโดยไม่บอกสาเหตุ
+    function dataError(err) {
+      const msg = String((err && err.message) || err);
+      const denied = msg.toUpperCase().includes('PERMISSION_DENIED');
+      document.getElementById('board').innerHTML = `
+        <div class="empty-state">
+          <i class="fa-solid fa-triangle-exclamation big" style="color:var(--critical-text)"></i>
+          <h5>อ่านผังไม่ได้</h5>
+          <p>${denied
+            ? 'Firebase ปฏิเสธการอ่าน <code>rpa_server_map</code> — แปลว่ายังไม่ได้ deploy database rules ตัวใหม่ที่เปิด path นี้'
+            : esc(msg)}</p>
+          ${denied ? `<p style="font-family:ui-monospace,monospace;font-size:.78rem">cd web-rpa<br>firebase deploy --only database</p>` : ''}
+        </div>`;
+      updateCounts(0, 0);
+    }
+
+    MAP.child('servers').on('value',
+      snap => { servers = snap.val() || {}; loaded.servers = true; render(); },
+      dataError);
+
+    MAP.child('bots').on('value',
+      snap => { bots = snap.val() || {}; loaded.bots = true; render(); },
+      dataError);
+
+    db.ref('.info/connected').on('value', snap => {
+      const on = snap.val() === true;
+      const badge = document.getElementById('connBadge');
+      badge.classList.toggle('online', on);
+      badge.classList.toggle('offline', !on);
+      document.getElementById('connText').textContent = on ? 'LIVE' : 'OFFLINE';
+    });
+
+    /* ============ ANIMATION TOGGLE ============ */
+    function applyAnim(on) {
+      document.body.classList.toggle('no-anim', !on);
+      document.getElementById('animLabel').textContent = 'Animation: ' + (on ? 'ON' : 'OFF');
+      document.getElementById('animToggle').classList.toggle('on', on);
+      localStorage.setItem('rpa_map_anim', on ? '1' : '0');
+    }
+
+    let animOn = localStorage.getItem('rpa_map_anim') !== '0';
+    applyAnim(animOn);
+    document.getElementById('animToggle').addEventListener('click', () => { animOn = !animOn; applyAnim(animOn); });
+
+    // แท็บถูกซ่อน (เช่นเปิดค้างบนจอ TV แล้วสลับไปแท็บอื่น) -> หยุด animation ไม่ให้กิน CPU ฟรีๆ
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) document.body.classList.add('no-anim');
+      else if (animOn) document.body.classList.remove('no-anim');
+    });
+
+    /* ============ THEME ============ */
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.setAttribute('data-bs-theme', theme);
+      document.getElementById('themeToggle').innerHTML = theme === 'light'
+        ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
+      localStorage.setItem('rpa_theme', theme);
+    }
+
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+      applyTheme(cur === 'dark' ? 'light' : 'dark');
+    });
+
+    applyTheme(localStorage.getItem('rpa_theme') || 'dark');
+  </script>
+</body>
+
+</html>

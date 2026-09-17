@@ -130,7 +130,9 @@
       border-radius: 10px;
     }
 
-    .nav-pills-custom button {
+    /* Servers เป็น <a> ไปอีกหน้า ส่วนที่เหลือเป็น <button> สลับแท็บในหน้าเดียว - ให้หน้าตาเหมือนกัน */
+    .nav-pills-custom button,
+    .nav-pills-custom a {
       border: 0;
       background: transparent;
       color: var(--ink-2);
@@ -140,9 +142,11 @@
       border-radius: 8px;
       transition: background .15s, color .15s;
       white-space: nowrap;
+      text-decoration: none;
     }
 
-    .nav-pills-custom button:hover { color: var(--ink); }
+    .nav-pills-custom button:hover,
+    .nav-pills-custom a:hover { color: var(--ink); }
 
     .nav-pills-custom button.active {
       background: var(--surface);
@@ -706,6 +710,7 @@
         <button data-tab="live" class="active"><i class="fa-solid fa-bolt me-1"></i> Live</button>
         <button data-tab="history"><i class="fa-solid fa-clock-rotate-left me-1"></i> History</button>
         <button data-tab="analytics"><i class="fa-solid fa-chart-column me-1"></i> Analytics</button>
+        <a href="servers.html" title="ผังว่าบอทตัวไหนรันบน server เครื่องไหน"><i class="fa-solid fa-sitemap me-1"></i> Servers</a>
       </nav>
 
       <div class="topbar-right">
@@ -1195,6 +1200,13 @@
       });
       if (b.dataset.tab === 'analytics') { renderAnalytics(); if (trendChart) trendChart.resize(); }
     }));
+
+    // เปิดแท็บตาม hash ได้ เช่น index.html#history — ใช้ตอนกดเมนูข้ามมาจาก servers.html
+    (function openTabFromHash() {
+      const t = (location.hash || '').replace('#', '');
+      const btn = document.querySelector(`#mainTabs button[data-tab="${t}"]`);
+      if (btn) btn.click();
+    })();
 
     /* ============ HISTORY ============ */
     function getFilteredHistory() {
