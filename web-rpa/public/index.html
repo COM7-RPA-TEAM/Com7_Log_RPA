@@ -574,53 +574,165 @@
     table.tbl .t-time { white-space: nowrap; font-variant-numeric: tabular-nums; }
 
     /* ============ HISTORY ============ */
-    .filter-row {
-      display: flex;
-      gap: .6rem;
-      flex-wrap: wrap;
-      align-items: flex-end;
-      margin-bottom: 1rem;
+
+    /* ============ LOG VIEW (History) ============
+       เรนเดอร์เฉพาะแถวที่มองเห็น (virtual scroll) — ที่ 50,000 แถว ถ้าวาง DOM จริงทั้งหมด
+       เบราว์เซอร์จะค้าง ตรงนี้จึงวางแค่ ~40 แถวแล้วเลื่อนตำแหน่งตาม scroll
+       ความสูงแถวคงที่ (LOG_ROW_H ใน JS) เพราะ virtual scroll ต้องคำนวณตำแหน่งจากตัวเลขนี้
+       ============================================================ */
+    .log-toolbar {
+      display: flex; align-items: center; gap: .45rem; flex-wrap: wrap;
+      margin-bottom: .7rem;
     }
 
-    .filter-row .f-item { min-width: 140px; }
-    .filter-row label {
-      font-size: .7rem;
-      font-weight: 700;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .5px;
-      margin-bottom: .25rem;
-      display: block;
+    .seg {
+      display: inline-flex; gap: .15rem;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 9px; padding: .18rem;
     }
 
-    .pagination-bar {
-      display: flex;
+    .seg button {
+      border: 0; background: transparent; color: var(--ink-2);
+      font-size: .74rem; font-weight: 600; padding: .28rem .6rem; border-radius: 7px;
+      white-space: nowrap;
+    }
+
+    .seg button:hover { color: var(--ink); }
+    .seg button.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
+    .live-dot {
+      display: inline-flex; align-items: center; gap: .35rem;
+      font-size: .72rem; font-weight: 700; color: var(--muted);
+      border: 1px solid var(--line); border-radius: 999px; padding: .22rem .6rem;
+    }
+
+    .live-dot i { font-size: .5rem; }
+    .live-dot.on { color: var(--good-text); border-color: color-mix(in srgb, var(--good) 40%, transparent); }
+    .live-dot.on i { animation: live-pulse 1.6s ease-in-out infinite; }
+
+    @keyframes live-pulse { 0%, 100% { opacity: 1 } 50% { opacity: .25 } }
+
+    /* ---- แถบกิจกรรม: ปริมาณ log ต่อช่วงเวลา สีแดง = Failed ---- */
+    .spark {
+      display: flex; align-items: flex-end; gap: 1px;
+      height: 46px; margin-bottom: .55rem;
+      background: var(--surface-2); border: 1px solid var(--line);
+      border-radius: 8px; padding: .3rem;
+      overflow: hidden;
+    }
+
+    .spark .b { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
+    .spark .b i { display: block; width: 100%; }
+    .spark .b .ok { background: color-mix(in srgb, var(--running) 55%, transparent); }
+    .spark .b .bad { background: var(--critical); }
+    .spark .b:hover .ok { background: var(--running); }
+    .spark .empty { color: var(--muted); font-size: .74rem; margin: auto; }
+
+    /* ---- ตัว log ---- */
+    .log-grid {
+      display: grid;
+      grid-template-columns: 148px minmax(150px, 230px) 96px minmax(140px, 1fr) minmax(140px, 1.2fr);
+      gap: .5rem;
       align-items: center;
-      justify-content: space-between;
-      gap: .75rem;
-      flex-wrap: wrap;
-      margin-top: .9rem;
-      font-size: .8rem;
+      padding: 0 .6rem;
+    }
+
+    .log-head {
+      font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
       color: var(--muted);
+      background: var(--surface-2);
+      border: 1px solid var(--line); border-bottom: 0;
+      border-radius: 9px 9px 0 0;
+      height: 30px;
     }
 
-    .pager { display: flex; gap: .25rem; }
-
-    .pager button {
+    .log-view {
+      position: relative;
+      height: 58vh; min-height: 300px;
+      overflow-y: auto; overflow-x: hidden;
       border: 1px solid var(--line);
+      border-radius: 0 0 9px 9px;
       background: var(--surface);
-      color: var(--ink-2);
-      min-width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      font-size: .8rem;
-      font-weight: 600;
-      padding: 0 .5rem;
+      contain: strict;   /* กัน layout ของแถวที่เลื่อนไปกระทบทั้งหน้า */
     }
 
-    .pager button:hover:not(:disabled) { border-color: var(--running); color: var(--running); }
-    .pager button.cur { background: var(--running); border-color: var(--running); color: #fff; }
-    .pager button:disabled { opacity: .4; }
+    .log-spacer { position: relative; width: 100%; }
+
+    .log-row {
+      position: absolute; left: 0; right: 0;
+      height: 26px; line-height: 26px;
+      font-size: .76rem;
+      border-bottom: 1px solid color-mix(in srgb, var(--line) 55%, transparent);
+      border-left: 3px solid transparent;
+      white-space: nowrap;
+    }
+
+    .log-row > * { overflow: hidden; text-overflow: ellipsis; }
+    .log-row:hover { background: var(--surface-2); }
+    .log-row.s-Failed { border-left-color: var(--critical); background: color-mix(in srgb, var(--critical) 7%, transparent); }
+    .log-row.s-Success { border-left-color: color-mix(in srgb, var(--good) 65%, transparent); }
+    .log-row.s-Running { border-left-color: var(--running); }
+    .log-row.s-Unknown { border-left-color: var(--warning); }
+
+    .log-row .t { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .log-row .t b { color: var(--ink-2); font-weight: 600; }
+    .log-row .nm { font-weight: 600; }
+    .log-row .st { font-weight: 700; font-size: .7rem; }
+    .log-row.s-Failed .st { color: var(--critical-text); }
+    .log-row.s-Success .st { color: var(--good-text); }
+    .log-row.s-Running .st { color: var(--running); }
+    .log-row.s-Unknown .st { color: var(--warning-text); }
+    .log-row .sg { color: var(--ink-2); }
+    .log-row .er { color: var(--critical-text); }
+
+    /* แถวที่เพิ่งไหลเข้ามาสดๆ กะพริบให้เห็นว่ามีของใหม่ */
+    .log-row.fresh { animation: row-flash 2.2s ease-out 1; }
+
+    @keyframes row-flash {
+      0% { background: color-mix(in srgb, var(--running) 38%, transparent); }
+      100% { background: transparent; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .log-row.fresh { animation: none; }
+      .live-dot.on i { animation: none; }
+    }
+
+    .log-foot {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: .75rem; flex-wrap: wrap;
+      margin-top: .6rem; font-size: .76rem; color: var(--muted);
+    }
+
+    .log-foot b { color: var(--ink); }
+
+    .trunc-note {
+      color: var(--warning-text);
+      border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+      background: color-mix(in srgb, var(--warning) 8%, transparent);
+      border-radius: 7px; padding: .12rem .5rem; font-size: .72rem;
+    }
+
+    /* ปุ่มลอย: โผล่เมื่อเลื่อนลงไปแล้วมีของใหม่เข้ามา */
+    .jump-new {
+      position: absolute; top: .5rem; left: 50%; transform: translateX(-50%);
+      z-index: 3;
+      background: var(--running); color: #fff; border: 0;
+      border-radius: 999px; padding: .25rem .8rem;
+      font-size: .74rem; font-weight: 700;
+      box-shadow: var(--shadow);
+    }
+
+    .log-empty { padding: 2.5rem 1rem; text-align: center; color: var(--muted); font-size: .84rem; }
+
+    /* จอแคบกว่าความกว้างที่คอลัมน์ต้องใช้: ให้เลื่อนแนวนอนได้แทนที่จะตัด Stage/Error หายไปเงียบๆ
+       หัวตารางอยู่ในกล่องเดียวกันจึงเลื่อนตามไปด้วย */
+    .log-scroll-x { overflow-x: auto; }
+    .log-x-inner { min-width: 100%; }
+
+    @media (max-width: 900px) {
+      .log-x-inner { min-width: 760px; }
+    }
 
     /* ============ ANALYTICS ============ */
     .ana-grid {
@@ -779,64 +891,60 @@
     <section id="tab-history" hidden>
       <div class="panel panel-pad">
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-          <div class="section-title mb-0"><i class="fa-solid fa-clock-rotate-left me-1"></i> ประวัติการรัน (10,000 รายการล่าสุด)</div>
-          <button class="btn-ghost" id="btnExportCsv"><i class="fa-solid fa-file-csv me-1"></i> Export CSV</button>
-        </div>
-
-        <div class="filter-row">
-          <div class="f-item">
-            <label>สถานะ</label>
-            <select class="form-select form-select-sm" id="filterStatus">
-              <option value="">ทั้งหมด</option>
-              <option value="Success">Success</option>
-              <option value="Failed">Failed</option>
-              <option value="Running">Running</option>
-            </select>
-          </div>
-          <div class="f-item">
-            <label>ชื่อบอท</label>
-            <input type="text" class="form-control form-control-sm" id="filterBot" placeholder="พิมพ์ชื่อบอท…">
-          </div>
-          <div class="f-item">
-            <label>จากวันที่</label>
-            <input type="date" class="form-control form-control-sm" id="filterFrom">
-          </div>
-          <div class="f-item">
-            <label>ถึงวันที่</label>
-            <input type="date" class="form-control form-control-sm" id="filterTo">
-          </div>
-          <button class="btn-ghost" id="btnClearFilter"><i class="fa-solid fa-filter-circle-xmark me-1"></i> ล้างฟิลเตอร์</button>
-        </div>
-
-        <div class="table-wrap" style="max-height:62vh; overflow-y:auto;">
-          <table class="tbl">
-            <thead>
-              <tr>
-                <th>Date / Time</th>
-                <th>Bot Name</th>
-                <th>Status</th>
-                <th>Stage</th>
-                <th>Error Message</th>
-              </tr>
-            </thead>
-            <tbody id="history-container">
-              <tr><td colspan="5" class="text-center py-4" style="color:var(--muted)">
-                <i class="fa-solid fa-circle-notch fa-spin me-1"></i> กำลังโหลดประวัติ…
-              </td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="pagination-bar">
-          <span id="page-info"></span>
+          <div class="section-title mb-0"><i class="fa-solid fa-terminal me-1"></i> Log ประวัติการรัน</div>
           <div class="d-flex align-items-center gap-2">
-            <select class="form-select form-select-sm" id="pageSizeSelect" style="width:auto">
-              <option value="25" selected>25 / หน้า</option>
-              <option value="50">50 / หน้า</option>
-              <option value="100">100 / หน้า</option>
-            </select>
-            <div class="pager" id="pagination-container"></div>
+            <span class="live-dot" id="liveDot"><i class="fa-solid fa-circle"></i> <span id="liveDotLabel">LIVE</span></span>
+            <button class="btn-ghost" id="btnExportCsv"><i class="fa-solid fa-file-csv me-1"></i> Export CSV</button>
           </div>
+        </div>
+
+        <!-- ช่วงเวลา = query จริงที่ยิงไป Firebase ส่วนฟิลเตอร์ด้านล่างกรองในเครื่อง -->
+        <div class="log-toolbar">
+          <div class="seg" id="rangeSeg">
+            <button data-range="today">วันนี้</button>
+            <button data-range="24h">24 ชม.</button>
+            <button data-range="7d" class="active">7 วัน</button>
+            <button data-range="30d">30 วัน</button>
+            <button data-range="custom">กำหนดเอง</button>
+          </div>
+
+          <input type="date" class="form-control form-control-sm" id="filterFrom" style="width:auto" hidden>
+          <input type="date" class="form-control form-control-sm" id="filterTo" style="width:auto" hidden>
+
+          <select class="form-select form-select-sm" id="filterStatus" style="width:auto">
+            <option value="">ทุกสถานะ</option>
+            <option value="Success">Success</option>
+            <option value="Failed">Failed</option>
+            <option value="Running">Running</option>
+            <option value="Unknown">Unknown</option>
+          </select>
+
+          <input type="text" class="form-control form-control-sm" id="filterBot" placeholder="ชื่อบอท…" style="width:170px">
+          <input type="text" class="form-control form-control-sm" id="filterText" placeholder="ค้นใน stage / error…" style="width:200px">
+
+          <button class="btn-ghost" id="btnClearFilter" title="ล้างฟิลเตอร์"><i class="fa-solid fa-filter-circle-xmark"></i></button>
+          <button class="btn-ghost" id="btnLiveTail" title="เลื่อนตามอัตโนมัติเมื่อมี log ใหม่"><i class="fa-solid fa-angles-down me-1"></i> Follow</button>
+        </div>
+
+        <div class="spark" id="spark"></div>
+
+        <!-- หัวตารางกับตัว log อยู่ในกล่องเลื่อนแนวนอนอันเดียวกัน จะได้เลื่อนไปพร้อมกันบนจอแคบ -->
+        <div class="log-scroll-x">
+          <div class="log-x-inner">
+            <div class="log-grid log-head">
+              <span>เวลา</span><span>Bot</span><span>Status</span><span>Stage</span><span>Error</span>
+            </div>
+
+            <div class="log-view" id="logView">
+              <button class="jump-new" id="jumpNew" hidden></button>
+              <div class="log-spacer" id="logSpacer"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="log-foot">
+          <span id="logCount"><i class="fa-solid fa-circle-notch fa-spin me-1"></i> กำลังโหลด…</span>
+          <span id="logRangeInfo"></span>
         </div>
       </div>
     </section>
@@ -933,9 +1041,17 @@
     let searchQuery = '';
     let statusFilter = '';           // กรองจากการคลิก KPI
     let staleThresholdMin = 30;
-    let currentPage = 1;
-    let rowsPerPage = 25;
-    let histFilter = { status: '', bot: '', from: '', to: '' };
+    let histFilter = { status: '', bot: '', text: '', from: '', to: '' };
+    let histRange = '7d';            // ช่วงเวลาที่ query จาก Firebase
+    let histQuery = null;
+    let histSubscribed = false;      // โหลด log ครั้งแรกตอนเปิดแท็บที่ใช้มันเท่านั้น
+    let histLoading = true;
+    let histTruncated = false;       // ผลลัพธ์ชนเพดาน HIST_MAX -> ที่เห็นไม่ใช่ทั้งช่วง
+    let visibleLogs = [];            // historyData ที่ผ่านฟิลเตอร์แล้ว (ชุดที่เรนเดอร์จริง)
+    let liveTail = true;
+    let newSinceScroll = 0;          // จำนวน log ใหม่ที่เข้ามาตอนผู้ใช้เลื่อนอ่านอยู่ข้างล่าง
+    let freshUntil = 0;              // เวลาที่แถวใหม่ยังต้องกะพริบอยู่
+    let freshKeys = new Set();
     let trendChart = null;
     let editModalInstance = null;
     let notifyEnabled = localStorage.getItem('rpa_notify') === '1';
@@ -1198,56 +1314,334 @@
       ['live', 'history', 'analytics'].forEach(t => {
         document.getElementById('tab-' + t).hidden = (t !== b.dataset.tab);
       });
+      // log ก้อนใหญ่โหลดตอนเปิดแท็บที่ใช้มันจริงๆ เท่านั้น
+      // คนที่เข้ามาดูแค่หน้า Live จะได้ไม่ต้องรอโหลดหลายเมกะไบต์ที่ไม่ได้ใช้
+      if (b.dataset.tab === 'history' || b.dataset.tab === 'analytics') ensureHistorySubscription();
+      if (b.dataset.tab === 'history') renderLogRows();   // คำนวณกรอบใหม่หลังกล่องมีความสูงจริง
       if (b.dataset.tab === 'analytics') { renderAnalytics(); if (trendChart) trendChart.resize(); }
     }));
 
     // เปิดแท็บตาม hash ได้ เช่น index.html#history — ใช้ตอนกดเมนูข้ามมาจาก servers.html
-    (function openTabFromHash() {
+    // setTimeout 0: การคลิกแท็บไปเรียกโค้ดส่วน log ซึ่งมี const (HIST_MAX, LOG_ROW_H) ประกาศอยู่ล่างไฟล์
+    // ถ้าเรียกทันทีตรงนี้จะชน temporal dead zone แล้ว log โหลดไม่ขึ้นทั้งหน้า
+    setTimeout(function openTabFromHash() {
       const t = (location.hash || '').replace('#', '');
       const btn = document.querySelector(`#mainTabs button[data-tab="${t}"]`);
       if (btn) btn.click();
-    })();
+    }, 0);
 
-    /* ============ HISTORY ============ */
+    /* ============ HISTORY — LOG VIEWER ============
+       ที่ระดับแสนกว่า record การแบ่งหน้าละ 25 แถวใช้ดูไม่ไหว
+       ส่วนนี้จึงเป็น log viewer: เลือกช่วงเวลา -> query ตรงจาก Firebase ->
+       กรองในเครื่อง -> เรนเดอร์เฉพาะแถวที่มองเห็น
+       ============================================================ */
+    const HIST_MAX = 50000;      // เพดานต่อ 1 query (~9 MB) กันเบราว์เซอร์ตาย
+    const LOG_ROW_H = 26;        // ต้องตรงกับ .log-row ใน CSS
+    const LOG_OVERSCAN = 8;      // เรนเดอร์เผื่อบน-ล่างกันขอบวูบตอนเลื่อนเร็ว
+    const SPARK_BUCKETS = 90;
+
+    /* ---- ขอบเขตของช่วงเวลา (string เทียบตรงๆ ได้เพราะเป็น YYYY-MM-DD HH:MM:SS) ---- */
+    function rangeBounds() {
+      const end = '9999';   // ครอบถึงอนาคต เพื่อให้ log ที่เพิ่งเข้ามาไหลเข้า query เดิม
+      if (histRange === 'custom') {
+        const f = document.getElementById('filterFrom').value;
+        const t = document.getElementById('filterTo').value;
+        return { start: f || '0000', end: t ? t + ' 23:59:59' : end };
+      }
+      if (histRange === 'today') return { start: localDateKey(new Date()), end };
+      const days = histRange === '24h' ? 1 : histRange === '7d' ? 7 : 30;
+      const d = new Date(Date.now() - days * 86400000);
+      const p = x => String(x).padStart(2, '0');
+      const start = histRange === '24h'
+        ? `${localDateKey(d)} ${p(d.getHours())}:${p(d.getMinutes())}:00`
+        : localDateKey(d);
+      return { start, end };
+    }
+
+    function rangeLabel() {
+      const map = { today: 'วันนี้', '24h': '24 ชั่วโมงล่าสุด', '7d': '7 วันล่าสุด', '30d': '30 วันล่าสุด' };
+      if (histRange !== 'custom') return map[histRange];
+      const f = document.getElementById('filterFrom').value || '…';
+      const t = document.getElementById('filterTo').value || '…';
+      return `${f} ถึง ${t}`;
+    }
+
+    /* ---- subscribe ตามช่วงที่เลือก ---- */
+    // เรียกครั้งแรกตอนเปิดแท็บ History หรือ Analytics เท่านั้น
+    // คนที่เข้ามาดูแค่หน้า Live จะได้ไม่ต้องโหลด log หลายเมกะไบต์ทิ้งเปล่า
+    function ensureHistorySubscription() {
+      if (histSubscribed) return;
+      histSubscribed = true;
+      subscribeHistory();
+      renderLogRows();
+      renderSpark();
+    }
+
+    let histRenderTimer = null;
+
+    function subscribeHistory() {
+      if (histQuery) histQuery.off();
+      histLoading = true;
+      renderLogFoot();
+
+      const { start, end } = rangeBounds();
+      histQuery = db.ref('rpa_history_logs').orderByChild('status_datetime')
+        .startAt(start).endAt(end).limitToLast(HIST_MAX);
+
+      histQuery.on('value', snapshot => {
+        const rows = Object.values(snapshot.val() || {});
+        histTruncated = rows.length >= HIST_MAX;
+
+        // จับว่าแถวไหน 'ใหม่' เทียบกับรอบก่อน เพื่อให้กะพริบ
+        const prevTop = historyData.length ? historyData[0].status_datetime : '';
+        historyData = sortLogsDesc(rows);
+        if (prevTop) {
+          freshKeys = new Set(historyData
+            .filter(r => (r.status_datetime || '') > prevTop)
+            .map(logKey));
+          if (freshKeys.size) {
+            freshUntil = Date.now() + 2200;
+            if (!isPinnedTop()) newSinceScroll += freshKeys.size;
+          }
+        }
+
+        histLoading = false;
+
+        // log มาเป็นชุดได้ (บอทยิงรัวๆ) — หน่วงนิดเดียวให้เรนเดอร์รอบเดียว
+        clearTimeout(histRenderTimer);
+        histRenderTimer = setTimeout(() => {
+          applyHistoryFilter({ keepScroll: true });
+          renderAnalytics();   // KPI ฝั่ง Live ไม่ได้อิง historyData แล้ว (ย้ายไปใช้ todayData)
+        }, 120);
+      }, err => {
+        histLoading = false;
+        document.getElementById('logSpacer').innerHTML =
+          `<div class="log-empty">อ่าน log ไม่ได้: ${esc(String((err && err.message) || err))}</div>`;
+        renderLogFoot();
+      });
+    }
+
+    /** คีย์ประจำแถว — ไม่มี id จาก Firebase ตรงนี้ เลยประกอบจากค่าที่ทำให้ไม่ซ้ำกัน */
+    function logKey(r) {
+      return (r.status_datetime || '') + '|' + (r.bot_name || '') + '|' + (r.stage || '');
+    }
+
+    /* ---- ฟิลเตอร์ (ทำในเครื่อง บนชุดที่ query มาแล้ว) ---- */
     function getFilteredHistory() {
+      const { status, bot, text, from, to } = histFilter;
+      if (!status && !bot && !text && !from && !to) return historyData;
+
       return historyData.filter(log => {
-        if (histFilter.status && normalizeStatus(log.status) !== histFilter.status) return false;
-        if (histFilter.bot && !String(log.bot_name || '').toLowerCase().includes(histFilter.bot)) return false;
+        if (status && normalizeStatus(log.status) !== status) return false;
+        if (bot && !String(log.bot_name || '').toLowerCase().includes(bot)) return false;
+        if (text) {
+          const hay = (String(log.stage || '') + ' ' + String(log.error_message || '')).toLowerCase();
+          if (!hay.includes(text)) return false;
+        }
         const dpart = String(log.status_datetime || '').slice(0, 10);
-        if (histFilter.from && dpart < histFilter.from) return false;
-        if (histFilter.to && dpart > histFilter.to) return false;
+        if (from && dpart < from) return false;
+        if (to && dpart > to) return false;
         return true;
       });
     }
 
-    function applyHistoryFilter() {
+    function applyHistoryFilter(opts) {
+      const keepScroll = opts && opts.keepScroll;
+      const view = document.getElementById('logView');
+      const prevScroll = view.scrollTop;
+
       histFilter.status = document.getElementById('filterStatus').value;
       histFilter.bot = document.getElementById('filterBot').value.trim().toLowerCase();
-      histFilter.from = document.getElementById('filterFrom').value;
-      histFilter.to = document.getElementById('filterTo').value;
-      currentPage = 1;
-      renderHistoryTable();
+      histFilter.text = document.getElementById('filterText').value.trim().toLowerCase();
+      histFilter.from = histRange === 'custom' ? document.getElementById('filterFrom').value : '';
+      histFilter.to = histRange === 'custom' ? document.getElementById('filterTo').value : '';
+
+      visibleLogs = getFilteredHistory();
+
+      document.getElementById('logSpacer').style.height = (visibleLogs.length * LOG_ROW_H) + 'px';
+      if (!keepScroll) { view.scrollTop = 0; newSinceScroll = 0; }
+      else if (liveTail && isPinnedTop()) { view.scrollTop = 0; newSinceScroll = 0; }
+      else view.scrollTop = prevScroll;
+
+      renderLogRows();
+      renderSpark();
+      renderLogFoot();
+      if (freshKeys.size) setTimeout(renderLogRows, 2300);   // เคลียร์คลาส fresh
     }
 
-    ['filterStatus', 'filterBot', 'filterFrom', 'filterTo'].forEach(id => {
-      document.getElementById(id).addEventListener('input', applyHistoryFilter);
+    function isPinnedTop() {
+      const view = document.getElementById('logView');
+      return view.scrollTop <= LOG_ROW_H * 2;
+    }
+
+    /* ---- virtual scroll: วาดเฉพาะแถวที่อยู่ในกรอบ ---- */
+    function renderLogRows() {
+      const view = document.getElementById('logView');
+      const spacer = document.getElementById('logSpacer');
+
+      if (!visibleLogs.length) {
+        spacer.innerHTML = `<div class="log-empty">${histLoading
+          ? '<i class="fa-solid fa-circle-notch fa-spin me-1"></i> กำลังโหลด log…'
+          : (historyData.length ? 'ไม่พบ log ตามเงื่อนไขที่กรอง' : 'ไม่มี log ในช่วงเวลานี้')}</div>`;
+        return;
+      }
+
+      const first = Math.max(0, Math.floor(view.scrollTop / LOG_ROW_H) - LOG_OVERSCAN);
+      const count = Math.ceil(view.clientHeight / LOG_ROW_H) + LOG_OVERSCAN * 2;
+      const last = Math.min(visibleLogs.length, first + count);
+      const showFresh = Date.now() < freshUntil;
+
+      let html = '';
+      for (let i = first; i < last; i++) {
+        const r = visibleLogs[i];
+        const ns = normalizeStatus(r.status);
+        const cls = STATUS_META[ns] ? ns : 'Unknown';
+        const dt = String(r.status_datetime || '');
+        const fresh = showFresh && freshKeys.has(logKey(r)) ? ' fresh' : '';
+        html += `<div class="log-grid log-row s-${cls}${fresh}" style="top:${i * LOG_ROW_H}px">`
+          + `<span class="t">${esc(dt.slice(5, 10))} <b>${esc(dt.slice(11, 19))}</b></span>`
+          + `<span class="nm" title="${esc(r.bot_name)}">${esc(r.bot_name)}</span>`
+          + `<span class="st">${esc(cls === 'Unknown' ? (r.status || '-') : cls)}</span>`
+          + `<span class="sg" title="${esc(r.stage)}">${esc(r.stage) || '-'}</span>`
+          + `<span class="er" title="${esc(r.error_message)}">${esc(r.error_message) || ''}</span>`
+          + `</div>`;
+      }
+      spacer.innerHTML = html;
+    }
+
+    /* ---- แถบกิจกรรม: log ต่อช่วงเวลา ให้เห็นว่าช่วงไหนเดินเยอะ/พังเยอะ ---- */
+    function renderSpark() {
+      const box = document.getElementById('spark');
+      if (visibleLogs.length < 2) {
+        box.innerHTML = `<span class="empty">${histLoading ? 'กำลังโหลด…' : 'ไม่มีข้อมูลพอจะสรุปเป็นกราฟ'}</span>`;
+        return;
+      }
+
+      // visibleLogs เรียงใหม่->เก่า ปลายอาร์เรย์คือเก่าสุด
+      const newest = parseDateTime(visibleLogs[0].status_datetime);
+      const oldest = parseDateTime(visibleLogs[visibleLogs.length - 1].status_datetime);
+      if (!newest || !oldest || newest <= oldest) { box.innerHTML = ''; return; }
+
+      const span = newest - oldest;
+      const buckets = Array.from({ length: SPARK_BUCKETS }, () => ({ ok: 0, bad: 0 }));
+      visibleLogs.forEach(r => {
+        const d = parseDateTime(r.status_datetime);
+        if (!d) return;
+        let idx = Math.floor((d - oldest) / span * SPARK_BUCKETS);
+        if (idx >= SPARK_BUCKETS) idx = SPARK_BUCKETS - 1;
+        if (idx < 0) idx = 0;
+        if (normalizeStatus(r.status) === 'Failed') buckets[idx].bad++;
+        else buckets[idx].ok++;
+      });
+
+      const peak = Math.max(1, ...buckets.map(b => b.ok + b.bad));
+      const fmt = d => d.toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      box.innerHTML = buckets.map((b, i) => {
+        const total = b.ok + b.bad;
+        const h = total / peak * 100;
+        const badPart = total ? b.bad / total * h : 0;
+        const at = new Date(oldest.getTime() + span * (i + .5) / SPARK_BUCKETS);
+        const tip = `${fmt(at)} — ${total} รายการ` + (b.bad ? ` (Failed ${b.bad})` : '');
+        return `<span class="b" title="${esc(tip)}">`
+          + `<i class="bad" style="height:${badPart}%"></i>`
+          + `<i class="ok" style="height:${h - badPart}%"></i></span>`;
+      }).join('');
+    }
+
+    function renderLogFoot() {
+      const total = historyData.length;
+      const shown = visibleLogs.length;
+      const filtered = shown !== total;
+
+      document.getElementById('logCount').innerHTML = histLoading
+        ? '<i class="fa-solid fa-circle-notch fa-spin me-1"></i> กำลังโหลด log…'
+        : `<b>${shown.toLocaleString()}</b> รายการ`
+          + (filtered ? ` (กรองจาก ${total.toLocaleString()})` : '')
+          + (histTruncated
+            ? ` <span class="trunc-note" title="ช่วงนี้มี log มากกว่าเพดานต่อ 1 query">`
+              + `แสดงได้สูงสุด ${HIST_MAX.toLocaleString()} รายการล่าสุดของช่วงนี้</span>`
+            : '');
+
+      const oldest = historyData.length ? historyData[historyData.length - 1].status_datetime : '';
+      document.getElementById('logRangeInfo').textContent =
+        rangeLabel() + (oldest ? ` · เก่าสุดที่โหลดมา ${oldest}` : '');
+    }
+
+    /* ---- scroll / live tail ---- */
+    document.getElementById('logView').addEventListener('scroll', () => {
+      renderLogRows();
+      if (isPinnedTop() && newSinceScroll) {
+        newSinceScroll = 0;
+        document.getElementById('jumpNew').hidden = true;
+      }
+      updateJumpNew();
+    }, { passive: true });
+
+    function updateJumpNew() {
+      const btn = document.getElementById('jumpNew');
+      const show = newSinceScroll > 0 && !isPinnedTop();
+      btn.hidden = !show;
+      if (show) btn.innerHTML = `<i class="fa-solid fa-arrow-up me-1"></i> ${newSinceScroll} รายการใหม่`;
+    }
+
+    document.getElementById('jumpNew').addEventListener('click', () => {
+      document.getElementById('logView').scrollTop = 0;
+      newSinceScroll = 0;
+      updateJumpNew();
+      renderLogRows();
+    });
+
+    function applyLiveTail(on) {
+      liveTail = on;
+      const btn = document.getElementById('btnLiveTail');
+      btn.classList.toggle('on', on);
+      document.getElementById('liveDot').classList.toggle('on', on);
+      document.getElementById('liveDotLabel').textContent = on ? 'LIVE' : 'PAUSED';
+      localStorage.setItem('rpa_live_tail', on ? '1' : '0');
+      if (on) { document.getElementById('logView').scrollTop = 0; newSinceScroll = 0; updateJumpNew(); renderLogRows(); }
+    }
+
+    document.getElementById('btnLiveTail').addEventListener('click', () => applyLiveTail(!liveTail));
+    applyLiveTail(localStorage.getItem('rpa_live_tail') !== '0');
+
+    /* ---- controls ---- */
+    document.querySelectorAll('#rangeSeg button').forEach(b => b.addEventListener('click', () => {
+      document.querySelectorAll('#rangeSeg button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      histRange = b.dataset.range;
+
+      const custom = histRange === 'custom';
+      document.getElementById('filterFrom').hidden = !custom;
+      document.getElementById('filterTo').hidden = !custom;
+      // ยังไม่กรอกวันครบ ก็ยังไม่ต้องยิง query ใหม่
+      if (custom && !(document.getElementById('filterFrom').value && document.getElementById('filterTo').value)) return;
+      subscribeHistory();
+    }));
+
+    ['filterFrom', 'filterTo'].forEach(id =>
+      document.getElementById(id).addEventListener('change', () => {
+        if (histRange === 'custom') subscribeHistory();
+      }));
+
+    ['filterStatus', 'filterBot', 'filterText'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => applyHistoryFilter());
     });
 
     document.getElementById('btnClearFilter').addEventListener('click', () => {
-      histFilter = { status: '', bot: '', from: '', to: '' };
-      ['filterStatus', 'filterBot', 'filterFrom', 'filterTo'].forEach(id => document.getElementById(id).value = '');
-      currentPage = 1;
-      renderHistoryTable();
+      ['filterStatus', 'filterBot', 'filterText'].forEach(id => document.getElementById(id).value = '');
+      applyHistoryFilter();
     });
 
+    window.addEventListener('resize', () => { if (visibleLogs.length) renderLogRows(); });
+
     document.getElementById('btnExportCsv').addEventListener('click', () => {
-      const rows = getFilteredHistory();
+      const rows = visibleLogs;
       if (!rows.length) { alert('ไม่มีข้อมูลให้ Export'); return; }
       const escCsv = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
       const header = ['Date/Time', 'Bot Name', 'Status', 'Stage', 'Error Message'];
       const lines = [header.map(escCsv).join(',')];
       rows.forEach(r => lines.push([r.status_datetime, r.bot_name, normalizeStatus(r.status), r.stage, r.error_message].map(escCsv).join(',')));
-      const csv = '﻿' + lines.join('\r\n'); // BOM กัน Excel อ่านภาษาไทยเพี้ยน
+      const csv = '\ufeff' + lines.join('\r\n'); // BOM กัน Excel อ่านภาษาไทยเพี้ยน
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const now = new Date();
@@ -1258,76 +1652,6 @@
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
     });
-
-    function renderHistoryTable() {
-      const tbody = document.getElementById('history-container');
-      const data = getFilteredHistory();
-      if (data.length === 0) {
-        const msg = historyData.length === 0 ? 'ยังไม่มีประวัติการรัน' : 'ไม่พบข้อมูลตามเงื่อนไขที่กรอง';
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4" style="color:var(--muted)">${msg}</td></tr>`;
-        document.getElementById('page-info').innerHTML = '';
-        document.getElementById('pagination-container').innerHTML = '';
-        return;
-      }
-
-      const totalItems = data.length;
-      const totalPages = Math.ceil(totalItems / rowsPerPage);
-      if (currentPage > totalPages) currentPage = totalPages;
-      if (currentPage < 1) currentPage = 1;
-
-      const startIndex = (currentPage - 1) * rowsPerPage;
-      const endIndex = Math.min(startIndex + rowsPerPage, totalItems);
-
-      let html = '';
-      data.slice(startIndex, endIndex).forEach(log => {
-        const ns = normalizeStatus(log.status);
-        const errorText = log.error_message
-          ? `<span style="color:var(--critical-text)"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(log.error_message)}</span>`
-          : `<span style="color:var(--muted)">-</span>`;
-        html += `
-          <tr>
-            <td class="t-time">${esc(log.status_datetime) || '-'}</td>
-            <td class="t-name">${esc(log.bot_name)}</td>
-            <td>${chip(ns)}</td>
-            <td>${esc(log.stage)}</td>
-            <td style="font-size:.8rem">${errorText}</td>
-          </tr>`;
-      });
-      tbody.innerHTML = html;
-
-      document.getElementById('page-info').innerHTML = `แสดงแถวที่ <b>${startIndex + 1}–${endIndex}</b> จาก ${totalItems} รายการ`;
-      renderPaginationButtons(totalPages);
-    }
-
-    function renderPaginationButtons(totalPages) {
-      const box = document.getElementById('pagination-container');
-      let h = `<button ${currentPage === 1 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})"><i class="fa-solid fa-chevron-left"></i></button>`;
-      let startPage = Math.max(1, currentPage - 2);
-      let endPage = Math.min(totalPages, currentPage + 2);
-      if (startPage > 1) h += `<button disabled>…</button>`;
-      for (let i = startPage; i <= endPage; i++) {
-        h += `<button class="${i === currentPage ? 'cur' : ''}" onclick="goToPage(${i})">${i}</button>`;
-      }
-      if (endPage < totalPages) h += `<button disabled>…</button>`;
-      h += `<button ${currentPage === totalPages ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})"><i class="fa-solid fa-chevron-right"></i></button>`;
-      box.innerHTML = h;
-    }
-
-    window.goToPage = function (pageNumber) { currentPage = pageNumber; renderHistoryTable(); };
-
-    document.getElementById('pageSizeSelect').addEventListener('change', function () {
-      rowsPerPage = parseInt(this.value);
-      currentPage = 1;
-      renderHistoryTable();
-    });
-
-    db.ref('rpa_history_logs').orderByChild('status_datetime').limitToLast(10000).on('value', (snapshot) => {
-      // ไม่ใส่ if (data) เพราะถ้า DB ว่าง ตารางจะค้างอยู่ที่ 'กำลังโหลด…' ตลอดไป
-      historyData = sortLogsDesc(Object.values(snapshot.val() || {}));
-      renderHistoryTable();
-      renderAnalytics();         // KPI ฝั่ง Live ไม่ได้อิง historyData แล้ว (ย้ายไปใช้ todayData)
-    });
-
     /* ---- KPI "วันนี้": query ตามวันที่ ไม่ใช่ตามจำนวน record ----
        ตาราง History ใช้ limitToLast(N) ซึ่งครอบคลุมไม่ถึงทั้งวันในวันที่บอทยิง log เยอะ
        (เคยเจอวันละ ~4,500 รายการ) ถ้าเอา KPI ไปอิงหน้าต่างนั้น Success Rate จะเพี้ยนแบบเงียบๆ
