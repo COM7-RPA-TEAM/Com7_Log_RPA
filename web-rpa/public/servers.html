@@ -563,6 +563,7 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    autoPauseWhenHidden(db, 5);   // แท็บที่ลืมเปิดค้างไว้ ไม่ต้องกิน bandwidth (ดู rpa-common.js)
     const MAP = db.ref('rpa_server_map');
 
     // id สงวนไว้สำหรับกล่อง Archived — ไม่มี record ใน servers/ เพราะไม่ใช่เครื่องจริง

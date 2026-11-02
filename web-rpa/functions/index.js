@@ -4,10 +4,12 @@
  *  1) clearSuccessLiveStatus  — เคลียร์การ์ด Success ทุกเที่ยงคืน
  *  2) timeoutStuckRunningBots — ตัดบอทที่ค้างสถานะ Running นานผิดปกติ
  *  3) pruneOldHistoryLogs     — ลบ log เก่าตาม retention (ค่าเริ่มต้น: DRY RUN ไม่ลบจริง)
+ *  4) aggregateDailyStats     — นับยอด Success/Failed ต่อวันต่อบอท ทุกครั้งที่มี log ใหม่
  *
  * ทุกตัวแตะเฉพาะ Realtime Database — ไม่เกี่ยวกับ API (main.py) และไม่กระทบบอทที่ยิง log เข้ามา
  */
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onValueCreated } = require("firebase-functions/v2/database");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 
@@ -26,6 +28,11 @@ const SUCCESS_STATUSES = new Set([
 // สถานะที่ถือว่า "กำลังทำงาน" — ตรงกับ normalizeStatus บน Dashboard เช่นกัน
 const RUNNING_STATUSES = new Set([
   "running", "start", "started", "in progress", "processing", "busy", "pending",
+]);
+
+// สถานะที่ถือว่า "ล้มเหลว" — ตรงกับ RPA_STATUS_WORDS.Failed ใน public/rpa-common.js
+const FAILED_STATUSES = new Set([
+  "failed", "fail", "error", "exception", "crash", "timeout",
 ]);
 
 /** แปลง "YYYY-MM-DD HH:MM:SS" (เวลาไทย) เป็น Date — ระบุ +07:00 ชัดเจน กัน server timezone เพี้ยน */
@@ -213,3 +220,76 @@ exports.pruneOldHistoryLogs = onSchedule(
     return null;
   }
 );
+
+/* ============================================================
+   4) นับยอดรายวันไว้ที่ rpa_stats/daily/{YYYY-MM-DD}
+
+   ทำไมต้องมี: ค่า Outgoing Bandwidth ของ Realtime Database (ตุลาคม 2026 ~24 GB, ฿474)
+   มาจากการที่หน้า Live / จอ TV / Analytics ดาวน์โหลด log ดิบทั้งวันหรือทั้งสัปดาห์
+   (ครั้งละ 0.1–2.8 MB) มานับ Success/Failed เองในเบราว์เซอร์ — และดาวน์โหลดใหม่ทุกครั้ง
+   ที่เปิดหน้าหรือหลุดแล้วต่อเน็ตใหม่ ฟังก์ชันนี้นับให้ตั้งแต่ตอนที่ log ถูกเขียน
+   หน้าเว็บจึงอ่านแค่ตัวเลขสรุปไม่กี่ KB แทน
+
+   โครงสร้าง:
+     rpa_stats/daily/{day}/all          {ok, fail, run, other}
+     rpa_stats/daily/{day}/bots/{key}   {name, ok, fail, run, other, last_fail}
+     rpa_stats/daily/{day}/unknown/{k}  {status, bot}   <- คำสถานะที่ระบบไม่รู้จัก
+
+   ใช้ ServerValue.increment จึงไม่ต้อง transaction และไม่มีปัญหาเขียนชนกันเวลา log เข้ารัวๆ
+   ============================================================ */
+
+/** key ของ Realtime Database ห้ามมี . # $ [ ] / — ชื่อบอทบางตัวมีจุดหรือ / ได้ */
+function statKey(s) {
+  const k = String(s || "").trim().replace(/[.#$\[\]\/]/g, "_").slice(0, 120);
+  return k || "(unknown)";
+}
+
+/** จัดกลุ่มสถานะให้ตรงกับ normalizeStatus บน Dashboard */
+function statBucket(raw) {
+  const s = String(raw || "").trim().toLowerCase();
+  if (SUCCESS_STATUSES.has(s)) return "ok";
+  if (FAILED_STATUSES.has(s)) return "fail";
+  if (RUNNING_STATUSES.has(s)) return "run";
+  return "other";
+}
+
+/** แปลง log 1 รายการเป็นชุด path ที่ต้องเพิ่มค่า — ใช้ร่วมกับสคริปต์ backfill */
+function statUpdatesFor(log, inc) {
+  const day = String((log && log.status_datetime) || "").slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return null;
+
+  const bucket = statBucket(log.status);
+  const botKey = statKey(log.bot_name);
+  const base = `rpa_stats/daily/${day}`;
+  const updates = {
+    [`${base}/all/${bucket}`]: inc,
+    [`${base}/bots/${botKey}/${bucket}`]: inc,
+    [`${base}/bots/${botKey}/name`]: String(log.bot_name || "(unknown)").slice(0, 120),
+  };
+  if (bucket === "fail") {
+    updates[`${base}/bots/${botKey}/last_fail`] = String(log.status_datetime);
+  }
+  if (bucket === "other" && log.status) {
+    updates[`${base}/unknown/${statKey(log.status)}`] = {
+      status: String(log.status).slice(0, 80),
+      bot: String(log.bot_name || "").slice(0, 120),
+    };
+  }
+  return updates;
+}
+
+exports.aggregateDailyStats = onValueCreated(
+  {
+    ref: "/rpa_history_logs/{logId}",
+    instance: "com7-rpa-log-default-rtdb",
+    region: REGION,
+  },
+  async (event) => {
+    const updates = statUpdatesFor(event.data.val(), admin.database.ServerValue.increment(1));
+    if (!updates) return null;   // ไม่มีวันที่ที่อ่านได้ -> ข้าม ไม่นับมั่ว
+    await admin.database().ref().update(updates);
+    return null;
+  }
+);
+
+module.exports._test = { statKey, statBucket, statUpdatesFor };

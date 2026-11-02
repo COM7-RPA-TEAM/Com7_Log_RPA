@@ -444,10 +444,11 @@
     const firebaseConfig = { databaseURL: "https://com7-rpa-log-default-rtdb.asia-southeast1.firebasedatabase.app/" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    autoPauseWhenHidden(db, 5);   // จอดับ / browser ย่อ -> หยุดกิน bandwidth (ดู rpa-common.js)
 
     let latestLiveData = null;
     let historyData = [];
-    let todayData = [];           // log ของ 'วันนี้' ครบทั้งวัน (ใช้กับ KPI + ตัวนับใน feed)
+    let todayStats = null;        // rpa_stats/daily/{วันนี้} — ยอดสรุปที่ Cloud Function นับให้
     let staleThresholdMin = 30;   // ปรับผ่าน query string ได้: tv.html?stale=60
     let tvPage = 0;               // หน้าปัจจุบัน (auto-rotate เมื่อบอทเยอะเกินจอ)
     const PAGE_ROTATE_SEC = 12;
@@ -511,7 +512,7 @@
         list.removeChild(list.lastElementChild);
       }
 
-      cnt.textContent = `วันนี้ ${todayData.length.toLocaleString()} รายการ`;
+      cnt.textContent = `วันนี้ ${dayTotals(todayStats).total.toLocaleString()} รายการ`;
     }
 
     /* ---------- RENDER ---------- */
@@ -533,15 +534,10 @@
       document.getElementById('kpiFailed').classList.toggle('hot', f > 0);
       document.getElementById('kpiStale').classList.toggle('hot', st > 0);
 
-      // Success rate วันนี้ — อ่านจาก todayData ที่ query ตามวันที่มาโดยเฉพาะ จึงครบทั้งวันเสมอ
-      let okT = 0, failT = 0;
-      todayData.forEach(log => {
-        const ns = normalizeStatus(log.status);
-        if (ns === 'Success') okT++;
-        else if (ns === 'Failed') failT++;
-      });
-      const denom = okT + failT;
-      document.getElementById('k-rate').textContent = denom ? Math.round(okT / denom * 100) + '%' : '—';
+      // Success rate วันนี้ — อ่านยอดสรุปจาก rpa_stats แทนการโหลด log ดิบทั้งวันมานับเอง
+      const tt = dayTotals(todayStats);
+      const denom = tt.ok + tt.fail;
+      document.getElementById('k-rate').textContent = denom ? Math.round(tt.ok / denom * 100) + '%' : '—';
 
       // Alert banner
       const alerts = bots.filter(b => b.eff === 'Failed' || b.eff === 'Stale');
@@ -600,7 +596,8 @@
 
     /* ---------- DATA ---------- */
     db.ref('rpa_live_status').on('value', (snap) => { latestLiveData = snap.val(); render(); });
-    db.ref('rpa_history_logs').orderByChild('status_datetime').limitToLast(500).on('value', (snap) => {
+    // จอแสดงจริงแค่ ~13 แถว — 50 แถวพอเหลือเผื่อจอสูง (500 แถวเดิม = 100 KB ทุกครั้งที่ reconnect)
+    db.ref('rpa_history_logs').orderByChild('status_datetime').limitToLast(50).on('value', (snap) => {
       const data = snap.val();
       if (data) {
         historyData = sortLogsDesc(Object.values(data));
@@ -608,17 +605,17 @@
       }
     });
 
-    /* KPI "วันนี้" แยก query ตามวันที่ ไม่ให้ขึ้นกับจำนวน record ที่ดึงมาแสดง feed */
-    let todayQuery = null;
+    /* KPI "วันนี้" อ่านยอดสรุปจาก rpa_stats (Cloud Function aggregateDailyStats นับให้)
+       เดิมโหลด log ดิบทั้งวันมานับเอง — จอนี้เปิด 24 ชม. ทุก reconnect จึงโหลดใหม่ทั้งก้อน */
+    let todayStatsRef = null;
     let todayKeyStr = '';
 
     function subscribeToday() {
-      if (todayQuery) todayQuery.off();
+      if (todayStatsRef) todayStatsRef.off();
       todayKeyStr = todayKey();
-      todayQuery = db.ref('rpa_history_logs').orderByChild('status_datetime')
-        .startAt(todayKeyStr).endAt(todayKeyStr + '\uf8ff');
-      todayQuery.on('value', (snap) => {
-        todayData = Object.values(snap.val() || {});
+      todayStatsRef = db.ref('rpa_stats/daily/' + todayKeyStr);
+      todayStatsRef.on('value', (snap) => {
+        todayStats = snap.val();
         render();
       });
     }

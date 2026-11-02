@@ -902,8 +902,8 @@
         <div class="log-toolbar">
           <div class="seg" id="rangeSeg">
             <button data-range="today">วันนี้</button>
-            <button data-range="24h">24 ชม.</button>
-            <button data-range="7d" class="active">7 วัน</button>
+            <button data-range="24h" class="active">24 ชม.</button>
+            <button data-range="7d">7 วัน</button>
             <button data-range="30d">30 วัน</button>
             <button data-range="custom">กำหนดเอง</button>
           </div>
@@ -1031,6 +1031,7 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    autoPauseWhenHidden(db, 5);   // แท็บที่ลืมเปิดค้างไว้ ไม่ต้องกิน bandwidth (ดู rpa-common.js)
     // Auth SDK ถูกโหลดแบบ on-demand (ดูบล็อก AUTH ด้านล่าง) ไม่ได้ใส่เป็น <script> ถาวร
     const authReady = !!firebaseConfig.apiKey;
 
@@ -1042,7 +1043,7 @@
     let statusFilter = '';           // กรองจากการคลิก KPI
     let staleThresholdMin = 30;
     let histFilter = { status: '', bot: '', text: '', from: '', to: '' };
-    let histRange = '7d';            // ช่วงเวลาที่ query จาก Firebase
+    let histRange = '24h';           // ช่วงเวลาที่ query จาก Firebase (24 ชม. ~0.3 MB / 7 วัน ~2.8 MB)
     let histQuery = null;
     let histSubscribed = false;      // โหลด log ครั้งแรกตอนเปิดแท็บที่ใช้มันเท่านั้น
     let histLoading = true;
@@ -1056,7 +1057,8 @@
     let editModalInstance = null;
     let notifyEnabled = localStorage.getItem('rpa_notify') === '1';
     let prevFailedSet = null;        // ไว้ตรวจว่ามี Failed "ตัวใหม่" เพื่อแจ้งเตือน
-    let todayData = [];              // log ของ 'วันนี้' ครบทั้งวัน (คนละ query กับตาราง History)
+    let todayStats = null;           // rpa_stats/daily/{วันนี้} — ยอดสรุปที่ Cloud Function นับให้
+    let weekStats = {};              // rpa_stats/daily 7 วันล่าสุด (แท็บ Analytics)
 
     document.addEventListener("DOMContentLoaded", () => {
       editModalInstance = new bootstrap.Modal(document.getElementById('editModal'));
@@ -1091,15 +1093,10 @@
       document.getElementById('kpi-stale').textContent = st;
       document.querySelector('.kpi.f-failed').classList.toggle('pulse-failed', f > 0);
 
-      // Success Rate วันนี้ — อ่านจาก todayData ที่ query ตามวันที่มาโดยเฉพาะ จึงครบทั้งวันเสมอ
-      let okT = 0, failT = 0;
-      todayData.forEach(log => {
-        const ns = normalizeStatus(log.status);
-        if (ns === 'Success') okT++;
-        else if (ns === 'Failed') failT++;
-      });
-      const denom = okT + failT;
-      document.getElementById('kpi-rate').textContent = denom ? Math.round(okT / denom * 100) + '%' : '—';
+      // Success Rate วันนี้ — อ่านยอดสรุปจาก rpa_stats (ไม่กี่ร้อยไบต์) แทนการโหลด log ดิบทั้งวันมานับเอง
+      const t = dayTotals(todayStats);
+      const denom = t.ok + t.fail;
+      document.getElementById('kpi-rate').textContent = denom ? Math.round(t.ok / denom * 100) + '%' : '—';
     }
 
     function renderAlertPanel(bots) {
@@ -1142,9 +1139,10 @@
         const raw = String((info && info.status) || '').trim();
         if (raw && !isKnownStatus(raw)) found.set(raw, botName);
       });
-      todayData.forEach(log => {
-        const raw = String(log.status || '').trim();
-        if (raw && !isKnownStatus(raw) && !found.has(raw)) found.set(raw, log.bot_name);
+      // คำแปลกๆ ใน log วันนี้ Cloud Function จดไว้ให้ที่ rpa_stats/daily/{วันนี้}/unknown
+      Object.values((todayStats && todayStats.unknown) || {}).forEach(u => {
+        const raw = String(u.status || '').trim();
+        if (raw && !isKnownStatus(raw) && !found.has(raw)) found.set(raw, u.bot);
       });
 
       if (!found.size) { box.hidden = true; return; }
@@ -1314,11 +1312,9 @@
       ['live', 'history', 'analytics'].forEach(t => {
         document.getElementById('tab-' + t).hidden = (t !== b.dataset.tab);
       });
-      // log ก้อนใหญ่โหลดตอนเปิดแท็บที่ใช้มันจริงๆ เท่านั้น
-      // คนที่เข้ามาดูแค่หน้า Live จะได้ไม่ต้องรอโหลดหลายเมกะไบต์ที่ไม่ได้ใช้
-      if (b.dataset.tab === 'history' || b.dataset.tab === 'analytics') ensureHistorySubscription();
-      if (b.dataset.tab === 'history') renderLogRows();   // คำนวณกรอบใหม่หลังกล่องมีความสูงจริง
-      if (b.dataset.tab === 'analytics') { renderAnalytics(); if (trendChart) trendChart.resize(); }
+      // log ดิบโหลดเฉพาะตอนเปิดแท็บ History — Analytics ใช้ยอดสรุปจาก rpa_stats แทน
+      if (b.dataset.tab === 'history') { ensureHistorySubscription(); renderLogRows(); }
+      if (b.dataset.tab === 'analytics') { ensureWeekStats(); renderAnalytics(); if (trendChart) trendChart.resize(); }
     }));
 
     // เปิดแท็บตาม hash ได้ เช่น index.html#history — ใช้ตอนกดเมนูข้ามมาจาก servers.html
@@ -1411,7 +1407,6 @@
         clearTimeout(histRenderTimer);
         histRenderTimer = setTimeout(() => {
           applyHistoryFilter({ keepScroll: true });
-          renderAnalytics();   // KPI ฝั่ง Live ไม่ได้อิง historyData แล้ว (ย้ายไปใช้ todayData)
         }, 120);
       }, err => {
         histLoading = false;
@@ -1615,12 +1610,43 @@
       document.getElementById('filterTo').hidden = !custom;
       // ยังไม่กรอกวันครบ ก็ยังไม่ต้องยิง query ใหม่
       if (custom && !(document.getElementById('filterFrom').value && document.getElementById('filterTo').value)) return;
+      if (!confirmBigRange()) return;
       subscribeHistory();
     }));
 
+    /**
+     * ช่วงยาวๆ ดึงข้อมูลเยอะ และ Realtime Database คิดเงินตาม GB ที่ดาวน์โหลด
+     * (30 วัน ~12 MB ต่อการเปิด 1 ครั้ง) — ถามก่อน ถ้าไม่ยืนยันให้กลับไป 24 ชม.
+     */
+    function confirmBigRange() {
+      let days = 0;
+      if (histRange === '30d') days = 30;
+      if (histRange === 'custom') {
+        const f = parseDateTime(document.getElementById('filterFrom').value + ' 00:00:00');
+        const t = parseDateTime(document.getElementById('filterTo').value + ' 00:00:00');
+        if (f && t) days = Math.round((t - f) / 86400000) + 1;
+      }
+      if (days <= 7) return true;
+
+      const mb = Math.min(12, Math.max(3, Math.round(days * 0.4)));
+      const ok = confirm(`ช่วง ${days} วันต้องดาวน์โหลด log ประมาณ ${mb} MB ต่อการเปิด 1 ครั้ง\n` +
+        `(Realtime Database คิดค่าบริการตามปริมาณที่ดาวน์โหลด)\n\nต้องการโหลดต่อไหม?`);
+      if (!ok) {
+        histRange = '24h';
+        document.querySelectorAll('#rangeSeg button').forEach(x =>
+          x.classList.toggle('active', x.dataset.range === '24h'));
+        document.getElementById('filterFrom').hidden = true;
+        document.getElementById('filterTo').hidden = true;
+        subscribeHistory();
+      }
+      return ok;
+    }
+
     ['filterFrom', 'filterTo'].forEach(id =>
       document.getElementById(id).addEventListener('change', () => {
-        if (histRange === 'custom') subscribeHistory();
+        if (histRange !== 'custom') return;
+        if (!(document.getElementById('filterFrom').value && document.getElementById('filterTo').value)) return;
+        if (confirmBigRange()) subscribeHistory();
       }));
 
     ['filterStatus', 'filterBot', 'filterText'].forEach(id => {
@@ -1652,20 +1678,19 @@
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
     });
-    /* ---- KPI "วันนี้": query ตามวันที่ ไม่ใช่ตามจำนวน record ----
-       ตาราง History ใช้ limitToLast(N) ซึ่งครอบคลุมไม่ถึงทั้งวันในวันที่บอทยิง log เยอะ
-       (เคยเจอวันละ ~4,500 รายการ) ถ้าเอา KPI ไปอิงหน้าต่างนั้น Success Rate จะเพี้ยนแบบเงียบๆ
-       จึงแยก listener ของ 'วันนี้' ออกมาต่างหาก — ได้ครบทั้งวันเสมอ และข้อมูลเบากว่าด้วย */
-    let todayQuery = null;
+    /* ---- ยอดสรุป "วันนี้" จาก rpa_stats ----
+       เดิมโหลด log ดิบของทั้งวัน (0.1–1 MB) มานับ Success/Failed เอง และโหลดใหม่ทุกครั้งที่เปิดหน้า
+       หรือเน็ตหลุดแล้วต่อใหม่ — นั่นคือต้นเหตุหลักของค่า Outgoing Bandwidth
+       ตอนนี้ Cloud Function aggregateDailyStats นับให้ตั้งแต่ตอนเขียน หน้าเว็บอ่านแค่ก้อนเล็กๆ */
+    let todayStatsRef = null;
     let todayKeyStr = '';
 
     function subscribeToday() {
-      if (todayQuery) todayQuery.off();
+      if (todayStatsRef) todayStatsRef.off();
       todayKeyStr = localDateKey(new Date());
-      todayQuery = db.ref('rpa_history_logs').orderByChild('status_datetime')
-        .startAt(todayKeyStr).endAt(todayKeyStr + '\uf8ff');
-      todayQuery.on('value', (snapshot) => {
-        todayData = Object.values(snapshot.val() || {});
+      todayStatsRef = db.ref('rpa_stats/daily/' + todayKeyStr);
+      todayStatsRef.on('value', snap => {
+        todayStats = snap.val();
         renderLiveDashboard();
       });
     }
@@ -1673,8 +1698,27 @@
 
     // เปิดหน้าจอค้างข้ามคืน -> ย้าย listener ไปวันใหม่ให้เอง
     setInterval(() => {
-      if (localDateKey(new Date()) !== todayKeyStr) subscribeToday();
+      if (localDateKey(new Date()) !== todayKeyStr) {
+        subscribeToday();
+        if (weekStatsRef) subscribeWeekStats();
+      }
     }, 60000);
+
+    /* ---- ยอดสรุป 7 วันสำหรับ Analytics (โหลดเมื่อเปิดแท็บเท่านั้น) ---- */
+    let weekStatsRef = null;
+
+    function ensureWeekStats() {
+      if (!weekStatsRef) subscribeWeekStats();
+    }
+
+    function subscribeWeekStats() {
+      if (weekStatsRef) weekStatsRef.off();
+      weekStatsRef = db.ref('rpa_stats/daily').orderByKey().startAt(lastNDays(7)[0]);
+      weekStatsRef.on('value', snap => {
+        weekStats = snap.val() || {};
+        renderAnalytics();
+      });
+    }
 
     /* ============ ANALYTICS ============ */
 
@@ -1696,15 +1740,7 @@
       if (!canvas || typeof Chart === 'undefined') return;
       const days = lastNDays(7);
       const succ = {}, fail = {};
-      days.forEach(k => { succ[k] = 0; fail[k] = 0; });
-      historyData.forEach(log => {
-        const k = String(log.status_datetime || '').slice(0, 10);
-        if (k in succ) {
-          const ns = normalizeStatus(log.status);
-          if (ns === 'Success') succ[k]++;
-          else if (ns === 'Failed') fail[k]++;
-        }
-      });
+      days.forEach(k => { const t = dayTotals(weekStats[k]); succ[k] = t.ok; fail[k] = t.fail; });
       const labels = days.map(k => {
         const d = parseDateTime(k + ' 00:00:00');
         return d ? d.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric' }) : k.slice(5);
@@ -1745,16 +1781,15 @@
     function renderTopFailing() {
       const box = document.getElementById('top-failing-container');
       if (!box) return;
-      const sinceKey = lastNDays(7)[0];
       const agg = {};
-      historyData.forEach(log => {
-        const k = String(log.status_datetime || '').slice(0, 10);
-        if (k >= sinceKey && normalizeStatus(log.status) === 'Failed') {
-          const name = log.bot_name || '(unknown)';
+      lastNDays(7).forEach(day => {
+        Object.values((weekStats[day] && weekStats[day].bots) || {}).forEach(b => {
+          if (!b.fail) return;
+          const name = b.name || '(unknown)';
           if (!agg[name]) agg[name] = { count: 0, last: '' };
-          agg[name].count++;
-          if ((log.status_datetime || '') > agg[name].last) agg[name].last = log.status_datetime;
-        }
+          agg[name].count += b.fail;
+          if ((b.last_fail || '') > agg[name].last) agg[name].last = b.last_fail;
+        });
       });
       const arr = Object.entries(agg).map(([name, v]) => ({ name, ...v })).sort((a, b) => b.count - a.count).slice(0, 10);
       if (!arr.length) {
@@ -1781,22 +1816,14 @@
     }
 
     function renderAnaStats() {
-      const todayKey = localDateKey(new Date());
-      const days = lastNDays(7);
-      let okT = 0, failT = 0, okW = 0, failW = 0;
+      const today = dayTotals(weekStats[localDateKey(new Date())]);
+      const okT = today.ok, failT = today.fail;
+      let okW = 0, failW = 0;
       const activeBots = new Set();
-      historyData.forEach(log => {
-        const k = String(log.status_datetime || '').slice(0, 10);
-        const ns = normalizeStatus(log.status);
-        if (k === todayKey) {
-          if (ns === 'Success') okT++;
-          else if (ns === 'Failed') failT++;
-        }
-        if (k >= days[0]) {
-          activeBots.add(log.bot_name || '?');
-          if (ns === 'Success') okW++;
-          else if (ns === 'Failed') failW++;
-        }
+      lastNDays(7).forEach(day => {
+        const t = dayTotals(weekStats[day]);
+        okW += t.ok; failW += t.fail;
+        Object.values((weekStats[day] && weekStats[day].bots) || {}).forEach(b => activeBots.add(b.name || '?'));
       });
       document.getElementById('ana-today-total').textContent = okT + failT;
       document.getElementById('ana-today-detail').textContent = `สำเร็จ ${okT} · ล้มเหลว ${failT}`;

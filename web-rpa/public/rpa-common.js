@@ -107,6 +107,39 @@ function sortBots(liveData, staleMin) {
   });
 }
 
+/* ============================================================
+   ประหยัด bandwidth ของ Realtime Database (คิดเงินตาม GB ที่ดาวน์โหลดออก)
+   ============================================================ */
+
+/**
+ * ตัดการเชื่อมต่อ Firebase เมื่อแท็บถูกซ่อนนานเกิน `minutes` นาที แล้วต่อใหม่เมื่อกลับมาดู
+ *
+ * แท็บที่เปิดค้างไว้แล้วลืม (หรือโน้ตบุ๊กที่ sleep/wake) จะ reconnect ซ้ำๆ
+ * และทุกครั้งที่ reconnect Firebase ส่งข้อมูลของทุก listener มาใหม่ทั้งก้อน
+ * ไม่รอทันทีที่ซ่อน เพราะคนสลับแท็บไปมาแป๊บเดียวจะกลายเป็นดาวน์โหลดใหม่บ่อยกว่าเดิม
+ */
+function autoPauseWhenHidden(database, minutes) {
+  let timer = null;
+  let paused = false;
+  document.addEventListener('visibilitychange', () => {
+    clearTimeout(timer);
+    if (document.hidden) {
+      timer = setTimeout(() => { database.goOffline(); paused = true; }, minutes * 60000);
+    } else if (paused) {
+      database.goOnline();
+      paused = false;
+    }
+  });
+}
+
+/** ยอดรวมของ 1 วันจาก rpa_stats/daily/{day} -> {ok, fail, run, other, total} */
+function dayTotals(day) {
+  const a = (day && day.all) || {};
+  const t = { ok: a.ok || 0, fail: a.fail || 0, run: a.run || 0, other: a.other || 0 };
+  t.total = t.ok + t.fail + t.run + t.other;
+  return t;
+}
+
 /** เรียง log ใหม่สุดขึ้นก่อน (status_datetime เป็น ASCII เทียบตรงๆ ได้ เร็วกว่า localeCompare มาก) */
 function sortLogsDesc(logs) {
   return logs.sort((a, b) => {
