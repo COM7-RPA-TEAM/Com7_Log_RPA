@@ -173,50 +173,56 @@ exports.timeoutStuckRunningBots = onSchedule(
    โตตาม และ query ช้าลงเรื่อยๆ
 
    ⚠️ ฟังก์ชันนี้ "ลบข้อมูลถาวร" กู้คืนไม่ได้
-      ค่าเริ่มต้นตั้งเป็น DRY_RUN = true คือ *นับให้ดูเฉยๆ ไม่ลบจริง*
-      ให้ deploy แล้วดู log ก่อนว่าจะลบเท่าไหร่ พอใจแล้วค่อยเปลี่ยนเป็น false
+      เก็บไว้แค่ RETENTION_DAYS วัน (ตกลงกันไว้ที่ 7 วัน) — ยอดสรุปรายวันใน rpa_stats
+      ไม่ถูกลบ กราฟ/ตัวเลขย้อนหลังจึงยังอยู่ แม้ log ดิบจะหายไปแล้ว
    ============================================================ */
-const DRY_RUN = true;              // ⚠️ เปลี่ยนเป็น false เมื่อพร้อมลบจริง
-const RETENTION_DAYS = 180;        // เก็บย้อนหลังกี่วัน
-const MAX_DELETES_PER_RUN = 5000;  // เพดานต่อรอบ กันฟังก์ชัน timeout
+const DRY_RUN = false;             // true = นับให้ดูใน log เฉยๆ ไม่ลบจริง
+const RETENTION_DAYS = 7;          // เก็บ log ดิบย้อนหลังกี่วัน
+const BATCH_SIZE = 5000;           // ลบทีละก้อน กัน update ก้อนเดียวใหญ่เกิน
+const TIME_BUDGET_MS = 7 * 60 * 1000;  // วนลบจนหมดหรือครบเวลานี้ (timeout ฟังก์ชัน 9 นาที)
 
 exports.pruneOldHistoryLogs = onSchedule(
   {
     schedule: "30 2 * * *",       // ทุกวัน 02:30 (ช่วงที่บอทไม่ค่อยรัน)
     timeZone: TZ,
     region: REGION,
+    timeoutSeconds: 540,
+    memory: "512MiB",
   },
   async () => {
     const cutoff = bkkDateKey(new Date(Date.now() - RETENTION_DAYS * 86400000));
     const ref = admin.database().ref("rpa_history_logs");
+    const started = Date.now();
+    let total = 0;
 
-    // endAt(cutoff) = ทุก record ที่ status_datetime อยู่ก่อนเที่ยงคืนของวัน cutoff
-    const snap = await ref
-      .orderByChild("status_datetime")
-      .endAt(cutoff)
-      .limitToFirst(MAX_DELETES_PER_RUN)
-      .once("value");
+    // วนเป็นก้อน — รอบแรกหลังลด retention มี log ค้างหลักแสน รอบละ 5,000 ต่อวันจะไล่ไม่ทัน
+    while (Date.now() - started < TIME_BUDGET_MS) {
+      // endAt(cutoff) = ทุก record ที่ status_datetime อยู่ก่อนเที่ยงคืนของวัน cutoff
+      const snap = await ref
+        .orderByChild("status_datetime")
+        .endAt(cutoff)
+        .limitToFirst(BATCH_SIZE)
+        .once("value");
 
-    const updates = {};
-    let count = 0;
-    snap.forEach((child) => { updates[child.key] = null; count++; });
+      const updates = {};
+      let count = 0;
+      snap.forEach((child) => { updates[child.key] = null; count++; });
+      if (count === 0) break;
 
-    if (count === 0) {
-      logger.info(`[pruneOldHistoryLogs] ไม่มี log เก่ากว่า ${cutoff} (retention ${RETENTION_DAYS} วัน)`);
-      return null;
+      if (DRY_RUN) {
+        logger.warn(`[pruneOldHistoryLogs] DRY RUN — พบ log เก่ากว่า ${cutoff} อย่างน้อย ${count} รายการ ยังไม่ลบจริง`);
+        return null;
+      }
+
+      await ref.update(updates);
+      total += count;
+      if (count < BATCH_SIZE) break;
     }
 
-    if (DRY_RUN) {
-      logger.warn(
-        `[pruneOldHistoryLogs] DRY RUN — พบ log เก่ากว่า ${cutoff} จำนวน ${count} รายการ ` +
-        `(เพดานรอบละ ${MAX_DELETES_PER_RUN}) ยังไม่ลบจริง ` +
-        `ถ้าต้องการลบให้ตั้ง DRY_RUN = false แล้ว deploy ใหม่`
-      );
-      return null;
-    }
-
-    await ref.update(updates);
-    logger.info(`[pruneOldHistoryLogs] ลบ log เก่ากว่า ${cutoff} แล้ว ${count} รายการ`);
+    logger.info(
+      `[pruneOldHistoryLogs] ลบ log เก่ากว่า ${cutoff} แล้ว ${total} รายการ (retention ${RETENTION_DAYS} วัน)` +
+      (Date.now() - started >= TIME_BUDGET_MS ? " — ยังเหลือ จะลบต่อรอบหน้า" : "")
+    );
     return null;
   }
 );

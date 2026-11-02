@@ -904,7 +904,6 @@
             <button data-range="today">วันนี้</button>
             <button data-range="24h" class="active">24 ชม.</button>
             <button data-range="7d">7 วัน</button>
-            <button data-range="30d">30 วัน</button>
             <button data-range="custom">กำหนดเอง</button>
           </div>
 
@@ -1345,7 +1344,7 @@
         return { start: f || '0000', end: t ? t + ' 23:59:59' : end };
       }
       if (histRange === 'today') return { start: localDateKey(new Date()), end };
-      const days = histRange === '24h' ? 1 : histRange === '7d' ? 7 : 30;
+      const days = histRange === '24h' ? 1 : 7;
       const d = new Date(Date.now() - days * 86400000);
       const p = x => String(x).padStart(2, '0');
       const start = histRange === '24h'
@@ -1355,7 +1354,7 @@
     }
 
     function rangeLabel() {
-      const map = { today: 'วันนี้', '24h': '24 ชั่วโมงล่าสุด', '7d': '7 วันล่าสุด', '30d': '30 วันล่าสุด' };
+      const map = { today: 'วันนี้', '24h': '24 ชั่วโมงล่าสุด', '7d': '7 วันล่าสุด' };
       if (histRange !== 'custom') return map[histRange];
       const f = document.getElementById('filterFrom').value || '…';
       const t = document.getElementById('filterTo').value || '…';
@@ -1610,44 +1609,25 @@
       document.getElementById('filterTo').hidden = !custom;
       // ยังไม่กรอกวันครบ ก็ยังไม่ต้องยิง query ใหม่
       if (custom && !(document.getElementById('filterFrom').value && document.getElementById('filterTo').value)) return;
-      if (!confirmBigRange()) return;
       subscribeHistory();
     }));
-
-    /**
-     * ช่วงยาวๆ ดึงข้อมูลเยอะ และ Realtime Database คิดเงินตาม GB ที่ดาวน์โหลด
-     * (30 วัน ~12 MB ต่อการเปิด 1 ครั้ง) — ถามก่อน ถ้าไม่ยืนยันให้กลับไป 24 ชม.
-     */
-    function confirmBigRange() {
-      let days = 0;
-      if (histRange === '30d') days = 30;
-      if (histRange === 'custom') {
-        const f = parseDateTime(document.getElementById('filterFrom').value + ' 00:00:00');
-        const t = parseDateTime(document.getElementById('filterTo').value + ' 00:00:00');
-        if (f && t) days = Math.round((t - f) / 86400000) + 1;
-      }
-      if (days <= 7) return true;
-
-      const mb = Math.min(12, Math.max(3, Math.round(days * 0.4)));
-      const ok = confirm(`ช่วง ${days} วันต้องดาวน์โหลด log ประมาณ ${mb} MB ต่อการเปิด 1 ครั้ง\n` +
-        `(Realtime Database คิดค่าบริการตามปริมาณที่ดาวน์โหลด)\n\nต้องการโหลดต่อไหม?`);
-      if (!ok) {
-        histRange = '24h';
-        document.querySelectorAll('#rangeSeg button').forEach(x =>
-          x.classList.toggle('active', x.dataset.range === '24h'));
-        document.getElementById('filterFrom').hidden = true;
-        document.getElementById('filterTo').hidden = true;
-        subscribeHistory();
-      }
-      return ok;
-    }
 
     ['filterFrom', 'filterTo'].forEach(id =>
       document.getElementById(id).addEventListener('change', () => {
         if (histRange !== 'custom') return;
         if (!(document.getElementById('filterFrom').value && document.getElementById('filterTo').value)) return;
-        if (confirmBigRange()) subscribeHistory();
+        subscribeHistory();
       }));
+
+    /* ระบบเก็บ log แค่ 7 วัน (pruneOldHistoryLogs) — ไม่ให้เลือกวันที่ที่ไม่มีข้อมูลแล้ว */
+    (function limitCustomDates() {
+      const min = localDateKey(new Date(Date.now() - 7 * 86400000));
+      const max = localDateKey(new Date());
+      ['filterFrom', 'filterTo'].forEach(id => {
+        const el = document.getElementById(id);
+        el.min = min; el.max = max;
+      });
+    })();
 
     ['filterStatus', 'filterBot', 'filterText'].forEach(id => {
       document.getElementById(id).addEventListener('input', () => applyHistoryFilter());
